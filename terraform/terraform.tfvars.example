@@ -1,0 +1,25 @@
+# Copie para terraform.tfvars e ajuste conforme necessário.
+# Nenhuma credencial de banco é definida aqui: RDS usa
+# manage_master_user_password (Secrets Manager gerenciado pela AWS).
+
+region       = "us-east-1"
+environment  = "dev"
+project_name = "togglemaster"
+
+vpc_cidr = "10.0.0.0/16"
+
+eks_cluster_version     = "1.30"
+eks_node_instance_types = ["t3.micro"]
+eks_desired_size        = 2
+eks_min_size            = 1
+eks_max_size            = 3
+
+rds_databases = {
+  auth      = { db_name = "auth" }
+  flag      = { db_name = "flagdb" }
+  targeting = { db_name = "targeting" }
+}
+
+ecr_repository_names = ["auth", "flag", "targeting", "evaluation", "analytics"]
+sqs_queue_name        = "toggle-master-events"
+dynamodb_table_name   = "ToggleMasterAnalytics"
