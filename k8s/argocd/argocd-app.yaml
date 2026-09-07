@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: togglemaster-gitops
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/claytonlfonseca/pos-cloud-fase2.git' # URL do repositório da equipe
+    targetRevision: main # Branch que o ArgoCD vai monitorar
+    path: k8s # Pasta onde estão todos os manifestos
+    directory:
+      recurse: true # Permite ler as subpastas (deployments, services, etc)
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
