@@ -69,6 +69,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
       
       - name: SCA Trivy
         uses: aquasecurity/trivy-action@v0.4.0
@@ -82,11 +90,12 @@ jobs:
 
       - name: Trivy JSON Report
         uses: aquasecurity/trivy-action@v0.4.0
+        if: always()
         with:
           scan-type: 'fs'
           scan-ref: './services/analytics-service'
           format: 'json'
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: true
           severity: 'CRITICAL'
           output: 'trivy-report.json'
