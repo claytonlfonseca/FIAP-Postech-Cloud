@@ -33,11 +33,11 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.4'
+          cache: true
+          cache-dependency-path: services/auth-service/go.sum
       
       - name: Download dependencies
-        run: |
-          go mod tidy
-          go mod download
+        run: go mod download
       
       - name: Build
         run: go build -o auth-service .
@@ -53,22 +53,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: golangci-lint
-        run: |
-          go mod tidy
-          go mod download
-        working-directory: services/auth-service
-
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.4'
-
-      - name: Download dependencies
-        run: |
-          go mod tidy
-          go mod download
-        working-directory: services/auth-service
+          cache: true
+          cache-dependency-path: services/auth-service/go.sum
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -92,11 +82,11 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.4'
+          cache: true
+          cache-dependency-path: services/auth-service/go.sum
 
       - name: Download dependencies
-        run: |
-          go mod tidy
-          go mod download
+        run: go mod download
       
       - name: SCA Trivy
         uses: aquasecurity/trivy-action@v0.4.0

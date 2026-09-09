@@ -55,7 +55,7 @@ services:
       - "8000:8000"
 
   auth-service:
-    build:
+    build: 
       context: ./auth-service
       dockerfile: Dockerfile
     container_name: auth-service

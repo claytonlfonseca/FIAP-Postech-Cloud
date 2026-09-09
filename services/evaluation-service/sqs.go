@@ -13,7 +13,7 @@ import (
 type EvaluationEvent struct {
 	UserID    string    `json:"user_id"`
 	FlagName  string    `json:"flag_name"`
-	Result    bool      `json:"result"`
+	Result    bool      `json:"result"` 
 	Timestamp time.Time `json:"timestamp"`
 }
 

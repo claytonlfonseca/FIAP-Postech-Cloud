@@ -14,7 +14,7 @@ Este é o serviço de CRUD (Create, Read, Update, Delete) do projeto ToggleMaste
 
 1.  **Clone o repositório** e entre na pasta `flag-service`.
 
-2.  **Prepare o Banco de Dados:**
+2.  **Prepare o Banco de Dados:** 
     * Crie um banco de dados no seu PostgreSQL (ex: `flags_db`).
     * Execute o script `db/init.sql` para criar a tabela `flags`:
         ```bash
