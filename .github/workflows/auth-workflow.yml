@@ -90,7 +90,7 @@ jobs:
         run: go mod tidy && go mod download
       
       - name: SCA Trivy
-        uses: aquasecurity/trivy-action@v0.31.0
+        uses: aquasecurity/trivy-action@v0.4.0
         with:
           scan-type: 'fs'
           scan-ref: './services/auth-service'
@@ -100,7 +100,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Trivy JSON Report
-        uses: aquasecurity/trivy-action@v0.31.0
+        uses: aquasecurity/trivy-action@v0.4.0
         if: always()
         with:
           scan-type: 'fs'
@@ -173,7 +173,7 @@ jobs:
             .
 
       - name: Container Image Scan with Trivy
-        uses: aquasecurity/trivy-action@v0.31.0
+        uses: aquasecurity/trivy-action@v0.4.0
         with:
           image-ref: '${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY }}:${{ steps.generate-tag.outputs.IMAGE_TAG }}'
           format: 'table'
