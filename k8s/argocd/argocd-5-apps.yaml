@@ -1,0 +1,119 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: auth-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/claytonlfonseca/FIAP-Postech-Cloud.git'
+    targetRevision: main
+    path: k8s
+    directory:
+      recurse: true
+      include: '*{auth}*'
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: auth
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: flag-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/claytonlfonseca/FIAP-Postech-Cloud.git'
+    targetRevision: main
+    path: k8s
+    directory:
+      recurse: true
+      include: '*{flag}*'
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: flag
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: targeting-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/claytonlfonseca/FIAP-Postech-Cloud.git'
+    targetRevision: main
+    path: k8s
+    directory:
+      recurse: true
+      include: '*{targeting}*'
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: targeting
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: evaluation-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/claytonlfonseca/FIAP-Postech-Cloud.git'
+    targetRevision: main
+    path: k8s
+    directory:
+      recurse: true
+      include: '*{evaluation}*'
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: evaluation
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: analytics-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/claytonlfonseca/FIAP-Postech-Cloud.git'
+    targetRevision: main
+    path: k8s
+    directory:
+      recurse: true
+      include: '*{analytics}*'
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: analytics
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

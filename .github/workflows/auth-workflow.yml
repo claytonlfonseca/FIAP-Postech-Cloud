@@ -6,8 +6,6 @@ on:
       - main
     paths:
       - 'services/auth-service/**'
-    paths-ignore:
-      - 'k8s/**
   pull_request:
     branches:
       - main
@@ -136,7 +134,7 @@ jobs:
 
     permissions:
       id-token: write
-      contents: read
+      contents: write
 
     defaults:
       run:
@@ -182,10 +180,12 @@ jobs:
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY }}:${{ steps.generate-tag.outputs.IMAGE_TAG }}
 
       - name: CD - Atualizar tag no repositório GitOps
+        working-directory: ${{ github.workspace }}
         run: |
-            sed -i "s|image: .*|image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.generate-tag.outputs.IMAGE_TAG }}|g" k8s/deployments/analytics-deployment.yaml
-            git config --global user.name 'GitHub Actions'
-            git config --global user.email 'actions@github.com'
-            git add k8s/deployments/analytics-deployment.yaml
-            git commit -m "GitOps: Deploy automático analytics-service tag ${{ steps.generate-tag.outputs.IMAGE_TAG }}"
+            sed -i "s|image: .*auth-service:.*|image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY }}:${{ steps.generate-tag.outputs.IMAGE_TAG }}|g" k8s/deployments/auth-deployment.yaml
+            git config --global user.name 'github-actions[bot]'
+            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+            git pull origin main --rebase
+            git add k8s/deployments/auth-deployment.yaml
+            git commit -m "GitOps: Deploy automático auth-service tag ${{ steps.generate-tag.outputs.IMAGE_TAG }} [skip ci]" || echo "Sem alterações para commitar"
             git push

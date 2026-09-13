@@ -6,11 +6,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/claytonlfonseca/pos-cloud-fase2.git' # URL do repositório da equipe
-    targetRevision: main # Branch que o ArgoCD vai monitorar
-    path: k8s # Pasta onde estão todos os manifestos
+    repoURL: 'https://github.com/claytonlfonseca/FIAP-Postech-Cloud.git'
+    targetRevision: main
+    path: k8s
     directory:
-      recurse: true # Permite ler as subpastas (deployments, services, etc)
+      recurse: true
+      exclude: '{argocd,argocd/*}'
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: default
@@ -18,3 +19,5 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
