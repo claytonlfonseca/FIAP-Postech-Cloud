@@ -61,7 +61,7 @@ AWS_REGION="us-east-1"
 pip install -r requirements.txt
 ```
 
-**4. Inicie o Serviço:**
+**4. Inicie o Serviço:** 
 ```bash
 gunicorn --bind 0.0.0.0:8005 app:app
 ```

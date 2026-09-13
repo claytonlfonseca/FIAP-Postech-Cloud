@@ -15,7 +15,7 @@ Este é o serviço de autenticação do projeto ToggleMaster. Ele é responsáve
     * Crie um banco de dados no seu PostgreSQL (ex: `auth_db`).
     * Execute o script `db/init.sql` para criar a tabela `api_keys`:
         ```bash
-        psql -U seu_usuario -d auth_db -f db/init.sql
+        psql -U seu_usuario -d auth_db -f db/init.sql 
         ```
 
 3.  **Configure as Variáveis de Ambiente:**

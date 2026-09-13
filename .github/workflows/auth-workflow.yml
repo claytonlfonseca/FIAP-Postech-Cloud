@@ -35,11 +35,10 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.4'
+          cache: false
       
       - name: Download dependencies
-        run: |
-          go mod tidy
-          go mod download
+        run: go mod tidy && go mod download
       
       - name: Build
         run: go build -o auth-service .
@@ -59,12 +58,11 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.4'
+          cache: false
 
       - name: Download dependencies
-        run: |
-          go mod tidy
-          go mod download
-        working-directory: services/auth-service
+        working-directory: ./services/auth-service
+        run: go mod tidy && go mod download
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -83,9 +81,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: SCA Trivy
         uses: aquasecurity/trivy-action@v0.4.0
+        env:
+          TRIVY_DETECTION_PRIORITY: comprehensive
         with:
           scan-type: 'fs'
           scan-ref: './services/auth-service'
@@ -96,11 +96,12 @@ jobs:
 
       - name: Trivy JSON Report
         uses: aquasecurity/trivy-action@v0.4.0
+        if: always()
         with:
           scan-type: 'fs'
           scan-ref: './services/auth-service'
           format: 'json'
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
           output: 'trivy-report.json'
