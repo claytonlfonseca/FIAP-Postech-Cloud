@@ -55,7 +55,7 @@ services:
       - "8000:8000"
 
   auth-service:
-    build: 
+    build:
       context: ./auth-service
       dockerfile: Dockerfile
     container_name: auth-service
@@ -63,9 +63,14 @@ services:
       PORT: "8001"
       DATABASE_URL: "postgres://postgres:postgres@postgres-auth:5432/auth_db?sslmode=disable"
       MASTER_KEY: "admin-secreto-123"
+      OTEL_SERVICE_NAME: "auth-service"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
     depends_on:
       postgres-auth:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     ports:
       - "8001:8001"
 
@@ -78,10 +83,15 @@ services:
       PORT: "8002"
       DATABASE_URL: "postgres://postgres:postgres@postgres-flags:5432/flags_db?sslmode=disable"
       AUTH_SERVICE_URL: "http://auth-service:8001"
+      OTEL_SERVICE_NAME: "flag-service"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
     depends_on:
       postgres-flags:
         condition: service_healthy
       auth-service:
+        condition: service_started
+      otel-collector:
         condition: service_started
     ports:
       - "8002:8002"
@@ -95,10 +105,15 @@ services:
       PORT: "8003"
       DATABASE_URL: "postgres://postgres:postgres@postgres-flags:5432/flags_db?sslmode=disable"
       AUTH_SERVICE_URL: "http://auth-service:8001"
+      OTEL_SERVICE_NAME: "targeting-service"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
     depends_on:
       postgres-flags:
         condition: service_healthy
       auth-service:
+        condition: service_started
+      otel-collector:
         condition: service_started
     ports:
       - "8003:8003"
@@ -117,12 +132,17 @@ services:
       AWS_REGION: "us-east-1"
       AWS_SQS_URL: ""
       AWS_ENDPOINT_URL: "http://dynamodb-local:8000"
+      OTEL_SERVICE_NAME: "evaluation-service"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
     depends_on:
       redis:
         condition: service_healthy
       flag-service:
         condition: service_started
       targeting-service:
+        condition: service_started
+      otel-collector:
         condition: service_started
     ports:
       - "8004:8004"
@@ -140,11 +160,30 @@ services:
       AWS_ENDPOINT_URL: "http://dynamodb-local:8000"
       AWS_ACCESS_KEY_ID: "dummy"
       AWS_SECRET_ACCESS_KEY: "dummy"
+      OTEL_SERVICE_NAME: "analytics-service"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
     depends_on:
       dynamodb-local:
         condition: service_started
+      otel-collector:
+        condition: service_started
     ports:
       - "8005:8005"
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "13133:13133" # health_check
+      - "8888:8888"   # métricas internas do collector
+    command: ["--config", "/etc/otel/otel-collector-config.yaml"]
+    restart: unless-stopped
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel/otel-collector-config.yaml
+
 
 volumes:
   postgres_auth_data:
