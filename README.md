@@ -6,6 +6,9 @@ O [guia completo para Ubuntu no WSL](../README.md) reúne arquitetura, estrutura
 instalação das ferramentas, execução local, provisionamento AWS, implantação,
 GitOps, monitoramento, diagnóstico e encerramento dos ambientes.
 
+Para executar em sequência, siga o
+[roteiro AWS: do bucket S3 ao monitoramento](../ROTEIRO_EXECUCAO_AWS.md).
+
 Os comandos abaixo são uma referência de infraestrutura. Antes de usá-los,
 consulte no guia central os ajustes de conta/backend, versões suportadas do EKS
 e dimensionamento. Terraform não instala sozinho a aplicação nem o monitoramento.
