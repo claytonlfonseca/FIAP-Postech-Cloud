@@ -1,5 +1,15 @@
 # ToggleMaster
 
+## Comece pelo guia central
+
+O [guia completo para Ubuntu no WSL](../README.md) reúne arquitetura, estrutura,
+instalação das ferramentas, execução local, provisionamento AWS, implantação,
+GitOps, monitoramento, diagnóstico e encerramento dos ambientes.
+
+Os comandos abaixo são uma referência de infraestrutura. Antes de usá-los,
+consulte no guia central os ajustes de conta/backend, versões suportadas do EKS
+e dimensionamento. Terraform não instala sozinho a aplicação nem o monitoramento.
+
 Projeto Terraform que provisiona toda a infraestrutura AWS do ToggleMaster
 (microsserviços `auth`, `flag`, `targeting`, `evaluation`, `analytics`),
 substituindo a criação manual da Fase 2.
@@ -29,7 +39,7 @@ terraform/
 
 ## Pré-requisitos
 
-- Terraform >= 1.9
+- Terraform >= 1.10 (necessário para o `use_lockfile` do backend S3)
 - AWS CLI configurado com credenciais da conta pessoal (`aws configure` ou
   variáveis `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`)
 - O usuário/role usado para aplicar o Terraform precisa de permissão para

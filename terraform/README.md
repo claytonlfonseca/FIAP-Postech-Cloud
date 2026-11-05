@@ -1,5 +1,11 @@
 # ToggleMaster — Fase 3 (Parte 1: Infraestrutura como Código)
 
+> Para a sequência completa de execução, consulte o
+> [guia central Ubuntu/WSL](../../README.md).
+> Os nomes de conta/bucket e a versão EKS abaixo são históricos: ajuste-os
+> ao seu ambiente e ao suporte atual da AWS. Dois nodes `t3.micro` não garantem
+> capacidade para aplicação, ArgoCD e observabilidade.
+
 Projeto Terraform que provisiona toda a infraestrutura AWS do ToggleMaster
 (microsserviços `auth`, `flag`, `targeting`, `evaluation`, `analytics`),
 substituindo a criação manual da Fase 2.
@@ -29,7 +35,7 @@ terraform/
 
 ## Pré-requisitos
 
-- Terraform >= 1.9
+- Terraform >= 1.10 (o backend S3 usa `use_lockfile`, indisponível em 1.9)
 - AWS CLI configurado com credenciais da conta pessoal (`aws configure` ou
   variáveis `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`)
 - O usuário/role usado para aplicar o Terraform precisa de permissão para

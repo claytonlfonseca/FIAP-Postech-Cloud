@@ -1,0 +1,215 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-config
+  namespace: monitoring
+data:
+  prometheus-rules.yaml: |
+    groups:
+      - name: togglemaster-microservices
+        interval: 30s
+        rules:
+          # Alert: Taxa de erro alta
+          - alert: HighErrorRate
+            expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+            for: 2m
+            annotations:
+              summary: "Taxa de erro acima de 5% para {{ $labels.application }}"
+              description: "Taxa de erro: {{ $value | humanizePercentage }}"
+
+          # Alert: Latência alta
+          - alert: HighLatency
+            expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            annotations:
+              summary: "Latência P95 acima de 1s para {{ $labels.application }}"
+              description: "Latência P95: {{ $value | humanizeDuration }}"
+
+          # Alert: Serviço Down
+          - alert: ServiceDown
+            expr: up{job=~"auth|flag|targeting|evaluation|analytics"} == 0
+            for: 1m
+            annotations:
+              summary: "Serviço {{ $labels.job }} está DOWN"
+              description: "Serviço {{ $labels.job }} não responde a scrape do Prometheus"
+
+          # Alert: Memory usage alto
+          - alert: HighMemoryUsage
+            expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.85
+            for: 3m
+            annotations:
+              summary: "Memória > 85% para {{ $labels.pod }}"
+              description: "Uso: {{ $value | humanizePercentage }}"
+
+          # Alert: CPU usage alto
+          - alert: HighCPUUsage
+            expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+            for: 5m
+            annotations:
+              summary: "CPU > 80% para {{ $labels.pod }}"
+              description: "Uso: {{ $value | humanizePercentage }}"
+
+          # Recording Rules: Pré-calcular aggregações comuns
+          - name: precomputed-metrics
+            interval: 30s
+            rules:
+              # Taxa de requisições por serviço
+              - record: microservices:http_requests:rate5m
+                expr: sum(rate(http_requests_total[5m])) by (application)
+
+              # Taxa de erro por serviço
+              - record: microservices:http_requests_errors:rate5m
+                expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (application)
+
+              # Latência P95 por serviço
+              - record: microservices:http_request_duration:p95
+                expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (application, le))
+
+              # Latência P99 por serviço
+              - record: microservices:http_request_duration:p99
+                expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (application, le))
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: togglemaster-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: togglemaster.rules
+      interval: 30s
+      rules:
+        # Taxa de requisições por serviço (gravação)
+        - record: togglemaster:http_requests_total:sum
+          expr: |
+            sum(http_requests_total) by (application, status, method)
+
+        # Taxa de erro por serviço
+        - record: togglemaster:error_rate:5m
+          expr: |
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (application)
+            /
+            sum(rate(http_requests_total[5m])) by (application)
+
+        # Alertas
+        - alert: ServiceHighErrorRate
+          expr: togglemaster:error_rate:5m > 0.05
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.application }} tem taxa de erro alta"
+            description: "Taxa de erro: {{ $value | humanizePercentage }}"
+
+        - alert: ServiceResponseTimeHigh
+          expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (application, le)) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.application }} tem latência alta"
+            description: "P95 latência: {{ $value | humanizeDuration }}"
+
+        - alert: KubernetesPodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total[15m]) > 0.1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} está em crash loop"
+            description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} reiniciou {{ $value }} vezes em 15m"
+
+        - alert: KubernetesNodeNotReady
+          expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Node {{ $labels.node }} não está pronto"
+            description: "Node {{ $labels.node }} está em estado NotReady"
+
+        - alert: KubernetesMemoryPressure
+          expr: kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Node {{ $labels.node }} tem pressão de memória"
+            description: "Node {{ $labels.node }} reporta MemoryPressure condition"
+
+        - alert: KubernetesDiskPressure
+          expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Node {{ $labels.node }} tem pressão de disco"
+            description: "Node {{ $labels.node }} reporta DiskPressure condition"
+
+        # Alert: PVC quase cheio
+        - alert: PersistentVolumeSpaceWarning
+          expr: |
+            (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.80
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} quase cheio"
+            description: "Uso: {{ $value | humanizePercentage }}"
+
+        - alert: PersistentVolumeSpaceCritical
+          expr: |
+            (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.95
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} CRÍTICO"
+            description: "Uso: {{ $value | humanizePercentage }}"
+
+---
+# ServiceMonitor para o próprio Prometheus (auto-scraping)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: prometheus-self-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  endpoints:
+    - port: web
+      interval: 30s
+
+---
+# ServiceMonitor para Grafana
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: grafana-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+  endpoints:
+    - port: service
+      interval: 30s
+      path: /metrics
+
+---
+# ServiceMonitor para Loki
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: loki-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: loki
+  endpoints:
+    - port: http-metrics
+      interval: 30s
