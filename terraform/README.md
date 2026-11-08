@@ -36,8 +36,9 @@ terraform/
 ## Pré-requisitos
 
 - Terraform >= 1.10 (o backend S3 usa `use_lockfile`, indisponível em 1.9)
-- AWS CLI configurado com credenciais da conta pessoal (`aws configure` ou
-  variáveis `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`)
+- AWS CLI >= 2.32.0 autenticado com `aws login`; valide conta/ARN com
+  `aws sts get-caller-identity` antes de provisionar. Prefira uma identidade
+  IAM de menor privilégio, não root.
 - O usuário/role usado para aplicar o Terraform precisa de permissão para
   criar recursos IAM (`iam:CreateRole`, `iam:AttachRolePolicy`, etc.), além
   dos serviços de rede, EKS, RDS, ElastiCache, DynamoDB, SQS e ECR.
@@ -56,7 +57,9 @@ terraform apply -var="bucket_name=togglemaster-tfstate-052005814846"
 
 Isso cria o bucket com versionamento, criptografia (SSE-S3) e bloqueio de
 acesso público. Ajuste `bucket_name` em `bootstrap/variables.tf` se o nome já
-estiver em uso (nomes de bucket S3 são globalmente únicos).
+estiver em uso (nomes de bucket S3 são globalmente únicos). O bucket pode ser
+apagado pelo Terraform, inclusive com objetos e versões; isso apaga
+permanentemente o state remoto armazenado nele.
 
 ## Passo 2 — Projeto principal
 
@@ -92,6 +95,28 @@ paralelo pelo Terraform e não somam ao tempo total:
 
 O `terraform destroy` costuma levar ~15-20 min (o NAT Gateway e as ENIs do
 EKS podem demorar um pouco mais para serem liberados).
+
+### Destruir o ambiente por completo
+
+O projeto principal e o bootstrap têm states separados. Destrua primeiro os
+recursos principais e só depois o bucket que armazena o state remoto:
+
+```bash
+cd terraform
+terraform plan -destroy
+terraform destroy
+
+cd bootstrap
+terraform plan -destroy -var="bucket_name=togglemaster-tfstate-052005814846"
+terraform destroy -var="bucket_name=togglemaster-tfstate-052005814846"
+```
+
+O ECR está configurado para apagar os repositórios mesmo quando ainda contêm
+imagens. O bucket do backend também está configurado para apagar objetos e
+versões. Essas exclusões são irreversíveis; preserve imagens, dados e uma
+cópia do state se precisar deles. Recursos criados fora desses states (por
+exemplo, add-ons e roles criados manualmente/por `eksctl`) ainda precisam ser
+removidos separadamente.
 
 ## O que é provisionado
 
