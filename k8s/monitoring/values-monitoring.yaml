@@ -3,6 +3,7 @@
 
 # Prometheus Configuration
 prometheus:
+  enabled: true
   prometheusSpec:
     # Retenção de dados
     retention: 15d
@@ -13,7 +14,7 @@ prometheus:
       volumeClaimTemplate:
         spec:
           accessModes: ["ReadWriteOnce"]
-          storageClassName: gp2  # AWS EBS gp2 (ajuste conforme cloud)
+          storageClassName: gp3
           resources:
             requests:
               storage: 10Gi
@@ -77,7 +78,7 @@ grafana:
   # Persistence
   persistence:
     enabled: true
-    storageClassName: gp2
+    storageClassName: gp3
     size: 10Gi
   
   # Resources
@@ -159,10 +160,6 @@ kube-state-metrics:
       cpu: 200m
       memory: 512Mi
 
-# Prometheus
-prometheus:
-  enabled: true
-
 # Webhook Alertmanager (opcional)
 # Configurar para integração com sistemas de alertas/on-call
 
@@ -172,6 +169,11 @@ prometheus:
 loki:
   # Segurança
   auth_enabled: false  # Habilitar em produção
+
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 10Gi
   
   # Ingester (processamento de logs)
   ingester:
@@ -225,12 +227,6 @@ loki:
   # Querier
   querier:
     max_concurrent: 20
-
-# Persistence
-persistence:
-  enabled: true
-  storageClassName: gp2
-  size: 10Gi
 
 # Resources
 resources:
@@ -310,10 +306,6 @@ promtail:
     limits:
       cpu: 200m
       memory: 512Mi
-
-# Grafana Loki datasource
-loki:
-  enabled: false  # Já incluído no prometheus-stack
 
 ---
 # Common Labels for all resources

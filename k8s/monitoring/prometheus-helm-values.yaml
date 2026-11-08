@@ -12,6 +12,7 @@ data:
           volumeClaimTemplate:
             spec:
               accessModes: ["ReadWriteOnce"]
+              storageClassName: gp3
               resources:
                 requests:
                   storage: 10Gi
@@ -81,6 +82,7 @@ data:
       adminPassword: "admin123"
       persistence:
         enabled: true
+        storageClassName: gp3
         size: 10Gi
       datasources:
         datasources.yaml:

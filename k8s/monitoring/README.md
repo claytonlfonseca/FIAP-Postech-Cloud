@@ -14,6 +14,10 @@
 > Para `kubectl: command not found`, instale kubectl no
 > Ubuntu e confira o PATH antes de executar novamente.
 
+Os charts com PVC declaram `storageClassName: gp3` explicitamente. Antes da
+sincronização, confirme que a StorageClass `gp3` existe e que o EBS CSI está
+saudável; os charts não dependem da StorageClass padrão do cluster.
+
 ## Visão Geral
 
 Este documento descreve a implementação completa do stack de observabilidade para o ToggleMaster, incluindo:

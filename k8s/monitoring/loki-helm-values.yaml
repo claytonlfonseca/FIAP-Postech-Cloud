@@ -7,6 +7,10 @@ data:
   values.yaml: |
     loki:
       auth_enabled: false
+      persistence:
+        enabled: true
+        storageClassName: gp3
+        size: 10Gi
       
       ingester:
         chunk_idle_period: 3m
@@ -47,10 +51,6 @@ data:
         reject_old_samples_max_age: 168h
         ingestion_rate_mb: 16
         ingestion_burst_size_mb: 20
-
-    persistence:
-      enabled: true
-      size: 10Gi
 
     serviceMonitor:
       enabled: false
