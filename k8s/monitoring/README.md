@@ -8,9 +8,12 @@
 > armazenamento e regras também exigem revisão. Veja a seção 8 do guia central.
 >
 > O script pode ser executado no WSL, apontando para EKS. Ele exige kubectl,
-> Helm, jq e ArgoCD disponíveis. Ele registra primeiro os charts e aguarda a
-> CRD ServiceMonitor antes de aplicar os monitores. Os caminhos dos manifests
-> são resolvidos pela localização do script, independentemente do diretório atual.
+> jq e ArgoCD disponíveis. Helm não é necessário localmente: o ArgoCD obtém os
+> charts diretamente dos repositórios declarados nas Applications. O script
+> valida e agrupa os manifests multi-documento, registra primeiro os charts e
+> aguarda a CRD ServiceMonitor antes de aplicar os monitores. Os caminhos dos
+> manifests são resolvidos pela localização do script, independentemente do
+> diretório atual.
 > Para `kubectl: command not found`, instale kubectl no
 > Ubuntu e confira o PATH antes de executar novamente.
 

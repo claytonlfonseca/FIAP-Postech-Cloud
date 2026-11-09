@@ -10,14 +10,15 @@ O script pode ser executado no WSL ou em uma máquina AWS. Ele instala recursos
 no **cluster do contexto kubectl**, não na máquina que executa o script.
 Ele não opera sobre Docker Compose.
 
-São necessários kubectl compatível com o cluster, Helm 3, jq, cluster acessível,
-ArgoCD, capacidade e armazenamento persistente. Para EKS, também AWS CLI
-autenticada e autorização para acessar o cluster.
+São necessários kubectl compatível com o cluster, jq, cluster acessível,
+ArgoCD, capacidade e armazenamento persistente. Helm não é necessário no
+terminal: o ArgoCD obtém os charts diretamente dos repositórios declarados nas
+Applications. Para EKS, também AWS CLI autenticada e autorização para acessar
+o cluster.
 
 ```bash
-command -v kubectl helm jq
+command -v kubectl jq
 kubectl version --client
-helm version
 kubectl config current-context
 kubectl get nodes
 kubectl get crd applications.argoproj.io

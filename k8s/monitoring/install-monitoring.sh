@@ -19,7 +19,7 @@ for manifest in \
     fi
 done
 
-for command in kubectl helm jq; do
+for command in kubectl jq; do
     if ! command -v "$command" >/dev/null 2>&1; then
         printf 'Erro: instale %s no terminal que executa este script.\n' "$command" >&2
         exit 1
@@ -37,34 +37,47 @@ else
     kubectl config use-context "$CLUSTER_CONTEXT"
 fi
 
-echo "🚀 Iniciando instalação do stack de monitoramento"
-echo "📍 Cluster: $CLUSTER_CONTEXT"
-echo "📦 Namespace: $NAMESPACE"
+echo "Iniciando instalação do stack de monitoramento"
+echo "Cluster: $CLUSTER_CONTEXT"
+echo "Namespace: $NAMESPACE"
 
 kubectl get crd applications.argoproj.io >/dev/null
 kubectl get namespace "$ARGOCD_NAMESPACE" >/dev/null
 
 APPLICATIONS_JSON=$(kubectl create --dry-run=client \
-    -f "$PROJECT_ROOT/k8s/argocd/argocd-monitoring-apps.yaml" -o json)
+    -f "$PROJECT_ROOT/k8s/argocd/argocd-monitoring-apps.yaml" -o json \
+    | jq -s -e '
+        if length == 3 and all(.[]; .kind == "Application" and .spec.source.repoURL != null)
+        then {apiVersion: "v1", kind: "List", items: .}
+        else error("Esperadas exatamente 3 Applications válidas no manifesto de monitoramento")
+        end
+    ')
+
+CHART_APPLICATIONS=$(jq -e '
+    {apiVersion: "v1", kind: "List", items: [.items[] | select(.spec.source.chart? != null)]}
+    | select(.items | length == 2)
+' <<< "$APPLICATIONS_JSON") || {
+    echo "Erro: esperado encontrar 2 Applications de charts Helm." >&2
+    exit 1
+}
+
+MANIFEST_APPLICATIONS=$(jq -e '
+    {apiVersion: "v1", kind: "List", items: [.items[] | select(.spec.source.chart? == null)]}
+    | select(.items | length == 1)
+' <<< "$APPLICATIONS_JSON") || {
+    echo "Erro: esperado encontrar 1 Application de manifests Git." >&2
+    exit 1
+}
 
 # 1. Criar namespace
 echo ""
-echo "1️⃣  Criando namespace 'monitoring'..."
-kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+echo "1. Criando namespace 'monitoring'..."
+kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
-# 2. Adicionar Helm repositories
+# 2. Registrar charts antes dos recursos que dependem do Operator
 echo ""
-echo "2️⃣  Adicionando Helm repositories..."
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add grafana https://grafana.github.io/helm-charts
-helm repo update
-
-# 3. Registrar charts antes dos recursos que dependem do Operator
-echo ""
-echo "3️⃣  Registrando charts em ArgoCD..."
-printf '%s\n' "$APPLICATIONS_JSON" \
-    | jq '{apiVersion: "v1", kind: "List", items: [.items[] | select(.spec.source.chart != null)]}' \
-    | kubectl apply -f -
+echo "2. Registrando charts em ArgoCD..."
+kubectl apply -f - <<< "$CHART_APPLICATIONS"
 
 echo "Aguardando criação e estabelecimento da CRD ServiceMonitor (até 10 minutos)..."
 if ! kubectl wait --for=create crd/servicemonitors.monitoring.coreos.com --timeout=300s \
@@ -78,9 +91,9 @@ if ! kubectl wait --for=create crd/servicemonitors.monitoring.coreos.com --timeo
     exit 1
 fi
 
-# 4. Aplicar recursos locais somente após estabelecer a CRD
+# 3. Aplicar recursos locais somente após estabelecer a CRD
 echo ""
-echo "4️⃣  Aplicando manifests do monitoring stack..."
+echo "3. Aplicando manifests do monitoring stack..."
 kubectl apply -f "$PROJECT_ROOT/k8s/namespaces/monitoring-namespace.yaml"
 for namespace in auth flag targeting evaluation analytics; do
     kubectl create namespace "$namespace" --dry-run=client -o yaml | kubectl apply -f -
@@ -88,17 +101,15 @@ done
 kubectl apply -f "$PROJECT_ROOT/k8s/monitoring/prometheus-service-monitor.yaml"
 kubectl apply -f "$PROJECT_ROOT/k8s/monitoring/grafana-dashboard-togglemaster.yaml"
 
-# 5. Registrar a fonte Git depois dos recursos dependentes
+# 4. Registrar a fonte Git depois dos recursos dependentes
 echo ""
-echo "5️⃣  Registrando manifests Git em ArgoCD..."
-printf '%s\n' "$APPLICATIONS_JSON" \
-    | jq '{apiVersion: "v1", kind: "List", items: [.items[] | select(.spec.source.chart == null)]}' \
-    | kubectl apply -f -
+echo "4. Registrando manifests Git em ArgoCD..."
+kubectl apply -f - <<< "$MANIFEST_APPLICATIONS"
 
 echo ""
-echo "✅ Instalação iniciada!"
+echo "Instalação iniciada."
 echo ""
-echo "📊 Próximos passos:"
+echo "Próximos passos:"
 echo ""
 echo "1. Aguardar sincronização automática do ArgoCD:"
 echo "   kubectl get applications -n argocd -w"
