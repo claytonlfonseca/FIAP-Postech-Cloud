@@ -15,7 +15,7 @@ on:
 
 env:
   AWS_REGION: "us-east-2"
-  ECR_REGISTRY: "fiap-fase2/auth-service"
+  ECR_REGISTRY: "fiap-fase2/auth"
 
 
 jobs:
