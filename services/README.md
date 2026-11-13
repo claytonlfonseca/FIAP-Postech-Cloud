@@ -1,5 +1,15 @@
 # ToggleMaster Local Stack - Conteinerizacao e Validacao
 
+> Comece pelo [guia central Ubuntu/WSL](../../README.md), com instalação do
+> Docker, diretório correto, teste funcional e limitações atuais.
+> Este documento também registra execuções anteriores; esses resultados não
+> substituem a validação na sua máquina.
+>
+> O Compose está nesta pasta `services`, não na raiz de `FIAP-Postech-Cloud`.
+> Execute os comandos Docker aqui. No modo local, SQS está desabilitado e o
+> OpenTelemetry Collector usa exporter `debug`; o Compose não inclui o stack
+> Kubernetes de monitoramento.
+
 Este documento descreve, de ponta a ponta, tudo o que foi realizado no projeto ao final existe um tutorial de testes e validações:
 
 - analise tecnica dos 5 microsservicos
@@ -183,9 +193,11 @@ Para facilitar autenticacao entre microsservicos no compose:
 
 ## 8. Como Subir o Ambiente
 
-Na raiz do projeto (mesmo nivel do docker-compose.yml):
+Na pasta `services` (mesmo nivel do docker-compose.yml), partindo da raiz
+`FIAP-Postech-Cloud`:
 
 ```bash
+cd services
 docker compose up -d --build
 ```
 
@@ -201,7 +213,7 @@ Para derrubar:
 docker compose down
 ```
 
-Para derrubar removendo volumes de banco:
+Somente para descartar intencionalmente os dados locais, removendo volumes de banco:
 
 ```bash
 docker compose down -v

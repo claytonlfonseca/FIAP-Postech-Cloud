@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: flag
-        image: 257527265067.dkr.ecr.us-east-1.amazonaws.com/fiap-fase2/flag-service:v1
+        image: 052005814846.dkr.ecr.us-east-1.amazonaws.com/flag:wsl-20261108235716
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8002

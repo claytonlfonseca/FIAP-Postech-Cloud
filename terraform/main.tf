@@ -28,7 +28,7 @@ module "rds" {
   name_prefix                = var.project_name
   vpc_id                     = module.networking.vpc_id
   subnet_ids                 = module.networking.private_subnet_ids
-  allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  allowed_security_group_ids = [module.eks.node_security_group_id]
   databases                  = var.rds_databases
 }
 
@@ -38,7 +38,7 @@ module "elasticache" {
   name_prefix                = var.project_name
   vpc_id                     = module.networking.vpc_id
   subnet_ids                 = module.networking.private_subnet_ids
-  allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  allowed_security_group_ids = [module.eks.node_security_group_id]
 }
 
 module "dynamodb" {

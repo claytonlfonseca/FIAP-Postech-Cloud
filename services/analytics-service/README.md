@@ -21,21 +21,28 @@ Sua única função é:
 Este serviço espera que uma tabela específica exista no DynamoDB.
 
 **Nome da Tabela:** `ToggleMasterAnalytics`
-**Chave Primária (Partition Key):** `event_id` (do tipo String)
 
-Você pode criar esta tabela usando o console da AWS ou com o seguinte comando da AWS CLI:
+**Chave de partição:** `eventId` (String)
+
+**Chave de ordenação:** `timestamp` (String)
+
+O Terraform do projeto cria esta tabela em modo sob demanda. Para uma tabela
+equivalente criada manualmente, use:
 
 ```bash
 aws dynamodb create-table \
     --table-name ToggleMasterAnalytics \
     --attribute-definitions \
-        AttributeName=event_id,AttributeType=S \
+        AttributeName=eventId,AttributeType=S \
+        AttributeName=timestamp,AttributeType=S \
     --key-schema \
-        AttributeName=event_id,KeyType=HASH \
-    --provisioned-throughput \
-        ReadCapacityUnits=1,WriteCapacityUnits=1
+        AttributeName=eventId,KeyType=HASH \
+        AttributeName=timestamp,KeyType=RANGE \
+    --billing-mode PAY_PER_REQUEST
 ```
-(Nota: O throughput provisionado acima é o mínimo possível, ideal para o free tier/testes).
+
+Não execute `create-table` se a tabela já existir. O worker grava o identificador
+no atributo `eventId` e inclui `timestamp` em cada item.
 
 ## 🚀 Rodando Localmente
 **1. Clone o repositório** e entre na pasta `analytics-service`.

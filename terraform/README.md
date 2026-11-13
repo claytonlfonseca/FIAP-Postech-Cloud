@@ -1,5 +1,11 @@
 # ToggleMaster — Fase 3 (Parte 1: Infraestrutura como Código)
 
+> Para a sequência completa de execução, consulte o
+> [guia central Ubuntu/WSL](../../README.md).
+> Os nomes de conta/bucket e a versão EKS abaixo são históricos: ajuste-os
+> ao seu ambiente e ao suporte atual da AWS. Dois nodes `t3.micro` não garantem
+> capacidade para aplicação, ArgoCD e observabilidade.
+
 Projeto Terraform que provisiona toda a infraestrutura AWS do ToggleMaster
 (microsserviços `auth`, `flag`, `targeting`, `evaluation`, `analytics`),
 substituindo a criação manual da Fase 2.
@@ -29,12 +35,29 @@ terraform/
 
 ## Pré-requisitos
 
-- Terraform >= 1.9
-- AWS CLI configurado com credenciais da conta pessoal (`aws configure` ou
-  variáveis `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`)
+- Terraform >= 1.10 (o backend S3 usa `use_lockfile`, indisponível em 1.9)
+- AWS CLI >= 2.32.0 autenticado com `aws login`; valide conta/ARN com
+  `aws sts get-caller-identity` antes de provisionar. Prefira uma identidade
+  IAM de menor privilégio, não root.
 - O usuário/role usado para aplicar o Terraform precisa de permissão para
   criar recursos IAM (`iam:CreateRole`, `iam:AttachRolePolicy`, etc.), além
   dos serviços de rede, EKS, RDS, ElastiCache, DynamoDB, SQS e ECR.
+- Para uma conta de laboratório, o script
+  [`scripts/grant-togglemaster-iam.sh`](../scripts/grant-togglemaster-iam.sh)
+  cria e anexa uma policy gerenciada ao usuário `user_togglemaster`. Envie o
+  arquivo ao CloudShell e execute `bash grant-togglemaster-iam.sh`. Por padrão,
+  usa `us-east-2` por padrão; defina `AWS_REGION` antes de executá-lo se o projeto
+  usar outra região. A policy permite criar e excluir
+  recursos em vários serviços dessa região (não apenas recursos do projeto);
+  conceda-a temporariamente e remova-a ao terminar. O CloudShell precisa estar
+  aberto com uma identidade autorizada a criar policies IAM e anexá-las ao usuário.
+  O script inclui leitura da service-linked role do EKS Node Group. Se a policy
+  já existir, o script não a atualiza: um administrador IAM deve publicar uma
+  nova versão com as permissões atualizadas. O statement KMS e `iam:GetRole`
+  usam `Resource: "*"`, portanto concedem acesso mais amplo que o necessário;
+  restrinja-os antes de usar em uma conta compartilhada ou de produção.
+- A versão PostgreSQL definida por padrão no módulo RDS é `16.15`; confirme a
+  disponibilidade na região escolhida antes de provisionar.
 
 ## Passo 1 — Bootstrap do backend remoto (bucket S3)
 
@@ -50,7 +73,9 @@ terraform apply -var="bucket_name=togglemaster-tfstate-052005814846"
 
 Isso cria o bucket com versionamento, criptografia (SSE-S3) e bloqueio de
 acesso público. Ajuste `bucket_name` em `bootstrap/variables.tf` se o nome já
-estiver em uso (nomes de bucket S3 são globalmente únicos).
+estiver em uso (nomes de bucket S3 são globalmente únicos). O bucket pode ser
+apagado pelo Terraform, inclusive com objetos e versões; isso apaga
+permanentemente o state remoto armazenado nele.
 
 ## Passo 2 — Projeto principal
 
@@ -86,6 +111,28 @@ paralelo pelo Terraform e não somam ao tempo total:
 
 O `terraform destroy` costuma levar ~15-20 min (o NAT Gateway e as ENIs do
 EKS podem demorar um pouco mais para serem liberados).
+
+### Destruir o ambiente por completo
+
+O projeto principal e o bootstrap têm states separados. Destrua primeiro os
+recursos principais e só depois o bucket que armazena o state remoto:
+
+```bash
+cd terraform
+terraform plan -destroy
+terraform destroy
+
+cd bootstrap
+terraform plan -destroy -var="bucket_name=togglemaster-tfstate-052005814846"
+terraform destroy -var="bucket_name=togglemaster-tfstate-052005814846"
+```
+
+O ECR está configurado para apagar os repositórios mesmo quando ainda contêm
+imagens. O bucket do backend também está configurado para apagar objetos e
+versões. Essas exclusões são irreversíveis; preserve imagens, dados e uma
+cópia do state se precisar deles. Recursos criados fora desses states (por
+exemplo, add-ons e roles criados manualmente/por `eksctl`) ainda precisam ser
+removidos separadamente.
 
 ## O que é provisionado
 

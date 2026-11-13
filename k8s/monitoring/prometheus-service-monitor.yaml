@@ -1,0 +1,83 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: auth-service-monitor
+  namespace: auth
+  labels:
+    app: auth
+spec:
+  selector:
+    matchLabels:
+      app: auth
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /actuator/prometheus
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: flag-service-monitor
+  namespace: flag
+  labels:
+    app: flag
+spec:
+  selector:
+    matchLabels:
+      app: flag
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /actuator/prometheus
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: targeting-service-monitor
+  namespace: targeting
+  labels:
+    app: targeting
+spec:
+  selector:
+    matchLabels:
+      app: targeting
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /actuator/prometheus
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: evaluation-service-monitor
+  namespace: evaluation
+  labels:
+    app: evaluation
+spec:
+  selector:
+    matchLabels:
+      app: evaluation
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /actuator/prometheus
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: analytics-service-monitor
+  namespace: analytics
+  labels:
+    app: analytics
+spec:
+  selector:
+    matchLabels:
+      app: analytics
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /actuator/prometheus

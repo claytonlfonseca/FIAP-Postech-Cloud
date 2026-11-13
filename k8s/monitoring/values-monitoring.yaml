@@ -1,0 +1,320 @@
+# Prometheus Stack - Helm Values
+# Customizações para o ambiente ToggleMaster
+
+# Prometheus Configuration
+prometheus:
+  enabled: true
+  prometheusSpec:
+    # Retenção de dados
+    retention: 15d
+    retentionSize: "9GB"  # Libera espaço quando atingir 9GB (limite de 10GB)
+    
+    # Storage
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          storageClassName: gp3
+          resources:
+            requests:
+              storage: 10Gi
+    
+    # Resource requests/limits
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    
+    # Service Monitor Selector
+    serviceMonitorSelector:
+      matchLabels:
+        prometheus: "true"
+    
+    # Pod Monitor Selector
+    podMonitorSelector:
+      matchLabels:
+        prometheus: "true"
+    
+    # Rule Selector
+    ruleSelector:
+      matchLabels:
+        prometheus: "true"
+    
+    # Additional scrape configs para componentes custom
+    additionalScrapeConfigs: []
+    
+    # Logging
+    logLevel: info
+
+# AlertManager
+alertmanager:
+  enabled: true
+  config:
+    global:
+      resolve_timeout: 5m
+    
+    route:
+      receiver: 'default-receiver'
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+    
+    receivers:
+      - name: 'default-receiver'
+        # Configurar webhook, email, Slack, etc.
+
+# Grafana
+grafana:
+  enabled: true
+  
+  # Admin credentials (alterar em produção!)
+  adminUser: admin
+  adminPassword: admin123
+  
+  # Persistence
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 10Gi
+  
+  # Resources
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  
+  # Datasources automáticas
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-kube-prometheus-prometheus:9090
+          access: proxy
+          isDefault: true
+          editable: true
+          
+        - name: Loki
+          type: loki
+          url: http://loki:3100
+          access: proxy
+          editable: true
+  
+  # Plugins
+  plugins: []
+  
+  # Provisioning de dashboards
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: 'ToggleMaster'
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 30
+          allowUiUpdates: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+
+# Prometheus Operator
+prometheusOperator:
+  enabled: true
+  manageCrds: true
+  
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+# Node Exporter
+prometheus-node-exporter:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Kube-State-Metrics
+kube-state-metrics:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+# Webhook Alertmanager (opcional)
+# Configurar para integração com sistemas de alertas/on-call
+
+---
+# Loki Stack - Helm Values
+
+loki:
+  # Segurança
+  auth_enabled: false  # Habilitar em produção
+
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 10Gi
+  
+  # Ingester (processamento de logs)
+  ingester:
+    chunk_idle_period: 3m
+    chunk_retain_period: 1m
+    max_chunk_age: 1h
+    chunk_encoding: snappy
+    lifecycler:
+      ring:
+        kvstore:
+          store: inmemory  # Usar consul/etcd em produção
+        replication_factor: 1
+  
+  # Schema Config
+  schema_config:
+    configs:
+      - from: 2020-10-24
+        store: boltdb-shipper
+        object_store: filesystem
+        schema:
+          version: v11
+          index:
+            prefix: index_
+            period: 24h
+  
+  # Server
+  server:
+    http_listen_port: 3100
+    log_level: info
+    grpc_listen_port: 9096
+  
+  # Storage Config
+  storage_config:
+    boltdb_shipper:
+      active_index_directory: /loki/index
+      cache_location: /loki/cache
+      shared_store: filesystem
+    filesystem:
+      directory: /loki/chunks
+  
+  # Limits Config
+  limits_config:
+    enforce_metric_name: false
+    reject_old_samples: true
+    reject_old_samples_max_age: 168h
+    ingestion_rate_mb: 16
+    ingestion_burst_size_mb: 20
+    max_entries_limit_per_second: 1000
+    max_global_streams_matched_per_user: 10000
+  
+  # Querier
+  querier:
+    max_concurrent: 20
+
+# Resources
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# Promtail (Log Collection)
+promtail:
+  enabled: true
+  
+  # Service Monitor
+  serviceMonitor:
+    enabled: false
+  
+  # Config
+  config:
+    # Client configuration
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+    
+    # Scrape configs
+    scrape_configs:
+      # Kubernetes pods
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          # Label do node
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node_name
+          
+          # Label do namespace
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          
+          # Label do pod
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          
+          # Label do container
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+          
+          # Label da aplicação (do label app do pod)
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+          
+          # Skip se não tem log path
+          - source_labels: [__meta_kubernetes_pod_container_port_name]
+            action: keep
+            regex: .*
+            action: drop
+        
+        # Pipeline de processamento
+        pipeline_stages:
+          - cri: {}
+          - multiline:
+              line_start_pattern: '^\d{4}-\d{2}-\d{2}'
+          - json:
+              expressions:
+                timestamp: timestamp
+                level: level
+                message: msg
+          - labels:
+              level: level
+              service: app
+
+  # Resources
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+---
+# Common Labels for all resources
+commonLabels:
+  managed-by: helmfile
+  environment: development
+  component: observability
+
+# Common Annotations
+commonAnnotations:
+  doc: "https://github.com/claytonlfonseca/FIAP-Postech-Cloud/k8s/monitoring/README.md"
+  prometheus: "true"

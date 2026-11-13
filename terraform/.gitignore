@@ -12,3 +12,4 @@ override.tf.json
 terraform.rc
 *.tfvars
 README_Explicativo.md
+*tfplan
