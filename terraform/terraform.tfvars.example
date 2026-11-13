@@ -2,7 +2,7 @@
 # Nenhuma credencial de banco é definida aqui: RDS usa
 # manage_master_user_password (Secrets Manager gerenciado pela AWS).
 
-region       = "us-east-1"
+region       = "us-east-2"
 environment  = "dev"
 project_name = "togglemaster"
 

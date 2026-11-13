@@ -42,6 +42,20 @@ terraform/
 - O usuário/role usado para aplicar o Terraform precisa de permissão para
   criar recursos IAM (`iam:CreateRole`, `iam:AttachRolePolicy`, etc.), além
   dos serviços de rede, EKS, RDS, ElastiCache, DynamoDB, SQS e ECR.
+- Para uma conta de laboratório, o script
+  [`scripts/grant-togglemaster-iam.sh`](../scripts/grant-togglemaster-iam.sh)
+  cria e anexa uma policy gerenciada ao usuário `user_togglemaster`. Envie o
+  arquivo ao CloudShell e execute `bash grant-togglemaster-iam.sh`. Por padrão,
+  limita as chamadas regionais a `us-east-1`; defina `AWS_REGION` antes de
+  executá-lo se o projeto usar outra região. A policy permite criar e excluir
+  recursos em vários serviços dessa região (não apenas recursos do projeto);
+  conceda-a temporariamente e remova-a ao terminar. O CloudShell precisa estar
+  aberto com uma identidade autorizada a criar policies IAM e anexá-las ao usuário.
+  O script inclui leitura da service-linked role do EKS Node Group. Se a policy
+  já existir, o script não a atualiza: um administrador IAM deve publicar uma
+  nova versão com essa permissão.
+- A versão PostgreSQL definida por padrão no módulo RDS é `16.15`; confirme a
+  disponibilidade na região escolhida antes de provisionar.
 
 ## Passo 1 — Bootstrap do backend remoto (bucket S3)
 
