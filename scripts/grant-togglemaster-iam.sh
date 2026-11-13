@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 TARGET_USER="${1:-user_togglemaster}"
 POLICY_NAME="ToggleMasterProjectProvisioner"
-REGION="${AWS_REGION:-us-east-1}"
+REGION="${AWS_REGION:-us-east-2}"
 
 if ! command -v aws >/dev/null 2>&1; then
   echo "Erro: AWS CLI não encontrado no CloudShell." >&2
@@ -26,7 +26,8 @@ if aws iam get-policy --policy-arn "$POLICY_ARN" >/dev/null 2>&1; then
     --output text)"
 
   if [[ "$ATTACHED_POLICY" == "$POLICY_ARN" ]]; then
-    echo "A policy ${POLICY_NAME} já está anexada a ${TARGET_USER}; nenhuma alteração necessária."
+    echo "A policy ${POLICY_NAME} já está anexada a ${TARGET_USER}."
+    echo "Este script não atualiza uma policy existente; peça a um administrador IAM para publicar uma nova versão."
     exit 0
   fi
 
@@ -68,16 +69,28 @@ cat >"$POLICY_FILE" <<EOF
       "Action": [
         "s3:CreateBucket",
         "s3:DeleteBucket",
+        "s3:GetAccelerateConfiguration",
+        "s3:GetBucketAcl",
+        "s3:GetBucketCORS",
         "s3:GetBucketLocation",
         "s3:GetBucketPolicy",
+        "s3:GetBucketPolicyStatus",
         "s3:GetBucketTagging",
         "s3:PutBucketTagging",
         "s3:DeleteBucketTagging",
+        "s3:GetBucketLogging",
+        "s3:GetBucketNotification",
+        "s3:GetBucketObjectLockConfiguration",
+        "s3:GetBucketOwnershipControls",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetBucketRequestPayment",
+        "s3:GetBucketWebsite",
         "s3:GetBucketVersioning",
         "s3:PutBucketVersioning",
         "s3:GetEncryptionConfiguration",
         "s3:PutEncryptionConfiguration",
-        "s3:GetBucketPublicAccessBlock",
+        "s3:GetLifecycleConfiguration",
+        "s3:GetReplicationConfiguration",
         "s3:PutBucketPublicAccessBlock",
         "s3:ListBucket",
         "s3:ListBucketVersions"
@@ -146,7 +159,10 @@ cat >"$POLICY_FILE" <<EOF
         "iam:ListRoleTags",
         "iam:AttachRolePolicy",
         "iam:DetachRolePolicy",
-        "iam:ListAttachedRolePolicies"
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies",
+        "iam:GetRolePolicy",
+        "iam:ListInstanceProfilesForRole"
       ],
       "Resource": "arn:aws:iam::${ACCOUNT_ID}:role/togglemaster-*",
       "Condition": {
@@ -167,7 +183,7 @@ cat >"$POLICY_FILE" <<EOF
       "Sid": "ReadEKSNodegroupServiceLinkedRole",
       "Effect": "Allow",
       "Action": "iam:GetRole",
-      "Resource": "arn:aws:iam::${ACCOUNT_ID}:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup"
+      "Resource": "*"
     },
     {
       "Sid": "PassProjectRolesToRequiredAwsServices",
@@ -269,6 +285,21 @@ cat >"$POLICY_FILE" <<EOF
       }
     },
     {
+      "Sid": "ManageKmsKeysForRdsEncryption",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt",
+        "kms:Encrypt",
+        "kms:ReEncrypt*",
+        "kms:ListKeys",
+        "kms:DescribeKey",
+        "kms:CreateGrant",
+        "kms:ListAliases"
+      ],
+      "Resource": "*"
+    },
+    {
       "Sid": "GetCallerIdentity",
       "Effect": "Allow",
       "Action": "sts:GetCallerIdentity",
@@ -303,6 +334,7 @@ echo
 echo "ATENÇÃO: ec2/eks/rds/elasticache/dynamodb/sqs/ecr podem ser gerenciados"
 echo "em toda a região, não somente nos recursos ToggleMaster; exclusões são possíveis."
 echo "A policy também administra roles/policies IAM do projeto e lê segredos RDS."
+echo "iam:GetRole e as ações KMS usam Resource '*'; isso amplia o acesso a roles e chaves da conta/região."
 echo "Acesso elevado: não use em conta compartilhada nem mantenha após o laboratório."
 read -r -p "Digite APPLY para criar e anexar a policy: " CONFIRMATION
 

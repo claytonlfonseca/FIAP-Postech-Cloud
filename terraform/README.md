@@ -46,14 +46,16 @@ terraform/
   [`scripts/grant-togglemaster-iam.sh`](../scripts/grant-togglemaster-iam.sh)
   cria e anexa uma policy gerenciada ao usuário `user_togglemaster`. Envie o
   arquivo ao CloudShell e execute `bash grant-togglemaster-iam.sh`. Por padrão,
-  limita as chamadas regionais a `us-east-1`; defina `AWS_REGION` antes de
-  executá-lo se o projeto usar outra região. A policy permite criar e excluir
+  usa `us-east-2` por padrão; defina `AWS_REGION` antes de executá-lo se o projeto
+  usar outra região. A policy permite criar e excluir
   recursos em vários serviços dessa região (não apenas recursos do projeto);
   conceda-a temporariamente e remova-a ao terminar. O CloudShell precisa estar
   aberto com uma identidade autorizada a criar policies IAM e anexá-las ao usuário.
   O script inclui leitura da service-linked role do EKS Node Group. Se a policy
   já existir, o script não a atualiza: um administrador IAM deve publicar uma
-  nova versão com essa permissão.
+  nova versão com as permissões atualizadas. O statement KMS e `iam:GetRole`
+  usam `Resource: "*"`, portanto concedem acesso mais amplo que o necessário;
+  restrinja-os antes de usar em uma conta compartilhada ou de produção.
 - A versão PostgreSQL definida por padrão no módulo RDS é `16.15`; confirme a
   disponibilidade na região escolhida antes de provisionar.
 
