@@ -27,7 +27,7 @@ def init_telemetry(app):
         trace.set_tracer_provider(provider)
 
         FlaskInstrumentor().instrument_app(app)
-        BotocoreInstrumentor().instrument()  # SQS e DynamoDB
+        BotocoreInstrumentor().instrument()  
         log.info("OpenTelemetry inicializado.")
     except Exception as e:
         log.error(f"Falha ao iniciar OpenTelemetry (seguindo sem tracing): {e}")

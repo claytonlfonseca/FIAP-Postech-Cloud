@@ -16,7 +16,7 @@ on:
 env:
   AWS_REGION: "us-east-1"
   ECR_REGISTRY: "fiap-fase2/evaluation-service"
-  
+
 
 jobs:
   build-and-test:
@@ -28,19 +28,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.4'
           cache: false
-      
+
       - name: Download dependencies
         run: go mod tidy && go mod download
-      
+
       - name: Build
         run: go build -o evaluation-service .
-      
+
       - name: Run tests
         run: go test ./...
 
@@ -88,7 +88,7 @@ jobs:
 
       - name: Download dependencies
         run: go mod tidy && go mod download
-      
+
       - name: SCA Trivy
         uses: aquasecurity/trivy-action@v0.4.0
         with:
@@ -109,14 +109,14 @@ jobs:
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
           output: 'trivy-report.json'
-      
+
       - name: upload Trivy Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: trivy-report
-          path: trivy-report.json  
-      
+          path: trivy-report.json
+
       - name: Run Horusec SAST
         uses: fike/horusec-action@v0.2.2
         with:
@@ -149,11 +149,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -185,7 +186,7 @@ jobs:
         run: |
           docker push \
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY }}:${{ steps.generate-tag.outputs.IMAGE_TAG }}
-      
+
       - name: CD - Atualizar tag no repositório GitOps
         working-directory: ${{ github.workspace }}
         run: |
@@ -195,4 +196,4 @@ jobs:
             git pull origin main --rebase
             git add k8s/deployments/evaluation-deployment.yaml
             git commit -m "GitOps: Deploy automático evaluation-service tag ${{ steps.generate-tag.outputs.IMAGE_TAG }} [skip ci]" || echo "Sem alterações para commitar"
-            git push         
+            git push
