@@ -15,7 +15,7 @@ on:
 
 env:
   AWS_REGION: "us-east-2"
-  ECR_REGISTRY: "fiap-fase2/evaluation"
+  ECR_REGISTRY: "evaluation"
 
 
 jobs:
@@ -55,7 +55,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.4'
+          go-version: '1.26.0'
           cache: false
 
       - name: Download dependencies
@@ -83,7 +83,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.4'
+          go-version: '1.26.0'
           cache: false
 
       - name: Download dependencies
