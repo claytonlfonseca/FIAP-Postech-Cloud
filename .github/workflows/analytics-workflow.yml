@@ -6,11 +6,13 @@ on:
       - main
     paths:
       - 'services/analytics-service/**'
+      - '.github/workflows/analytics-workflow.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'services/analytics-service/**'
+      - '.github/workflows/analytics-workflow.yml'
   workflow_dispatch:
 
 env:
@@ -181,7 +183,7 @@ jobs:
       - name: CD - Atualizar tag no repositório GitOps
         working-directory: ${{ github.workspace }}
         run: |
-            sed -i "s|image: .*analytics-service:.*|image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY }}:${{ steps.generate-tag.outputs.IMAGE_TAG }}|g" k8s/deployments/analytics-deployment.yaml
+            sed -i "s|image: .*/analytics:.*|image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY }}:${{ steps.generate-tag.outputs.IMAGE_TAG }}|g" k8s/deployments/analytics-deployment.yaml
             git config --global user.name 'github-actions[bot]'
             git config --global user.email 'github-actions[bot]@users.noreply.github.com'
             git pull origin main --rebase

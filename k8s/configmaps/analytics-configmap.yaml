@@ -5,6 +5,6 @@ metadata:
   namespace: analytics
 data:
   PORT: "8005"
-  AWS_REGION: "us-east-1"
-  AWS_SQS_URL: "https://sqs.us-east-1.amazonaws.com/052005814846/toggle-master-events"
+  AWS_REGION: "us-east-2"
+  AWS_SQS_URL: "https://sqs.us-east-2.amazonaws.com/197405022570/toggle-master-events"
   AWS_DYNAMODB_TABLE: "ToggleMasterAnalytics"

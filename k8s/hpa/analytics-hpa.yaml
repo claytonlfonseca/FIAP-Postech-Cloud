@@ -17,30 +17,3 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: analytics
-status:
-  conditions:
-  - lastTransitionTime: "2026-07-15T01:12:37Z"
-    message: recommended size matches current size
-    reason: ReadyForNewScale
-    status: "True"
-    type: AbleToScale
-  - lastTransitionTime: "2026-07-15T01:12:38Z"
-    message: the HPA was able to successfully calculate a replica count from cpu resource
-      utilization (percentage of request)
-    reason: ValidMetricFound
-    status: "True"
-    type: ScalingActive
-  - lastTransitionTime: "2026-07-15T01:12:38Z"
-    message: the desired count is within the acceptable range
-    reason: DesiredWithinRange
-    status: "False"
-    type: ScalingLimited
-  currentMetrics:
-  - resource:
-      current:
-        averageUtilization: 1
-        averageValue: 1m
-      name: cpu
-    type: Resource
-  currentReplicas: 1
-  desiredReplicas: 1

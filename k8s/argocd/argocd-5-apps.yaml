@@ -12,6 +12,7 @@ spec:
     directory:
       recurse: true
       include: '*{auth}*'
+      exclude: '{gateway/*,keda/*,secrets/*}'
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: auth
@@ -36,6 +37,7 @@ spec:
     directory:
       recurse: true
       include: '*{flag}*'
+      exclude: '{gateway/*,keda/*,secrets/*}'
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: flag
@@ -60,6 +62,7 @@ spec:
     directory:
       recurse: true
       include: '*{targeting}*'
+      exclude: '{gateway/*,keda/*,secrets/*}'
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: targeting
@@ -84,6 +87,7 @@ spec:
     directory:
       recurse: true
       include: '*{evaluation}*'
+      exclude: '{gateway/*,keda/*,secrets/*}'
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: evaluation
@@ -108,6 +112,7 @@ spec:
     directory:
       recurse: true
       include: '*{analytics}*'
+      exclude: '{gateway/*,keda/*,secrets/*}'
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: analytics

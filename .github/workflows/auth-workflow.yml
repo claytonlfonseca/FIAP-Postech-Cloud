@@ -6,11 +6,13 @@ on:
       - main
     paths:
       - 'services/auth-service/**'
+      - '.github/workflows/auth-workflow.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'services/auth-service/**'
+      - '.github/workflows/auth-workflow.yml'
   workflow_dispatch:
 
 env:
@@ -183,7 +185,7 @@ jobs:
       - name: CD - Atualizar tag no repositório GitOps
         working-directory: ${{ github.workspace }}
         run: |
-            sed -i "s|image: .*auth-service:.*|image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY }}:${{ steps.generate-tag.outputs.IMAGE_TAG }}|g" k8s/deployments/auth-deployment.yaml
+            sed -i "s|image: .*/auth:.*|image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY }}:${{ steps.generate-tag.outputs.IMAGE_TAG }}|g" k8s/deployments/auth-deployment.yaml
             git config --global user.name 'github-actions[bot]'
             git config --global user.email 'github-actions[bot]@users.noreply.github.com'
             git pull origin main --rebase
