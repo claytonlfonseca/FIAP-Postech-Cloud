@@ -23,347 +23,10 @@ data:
       },
       "editable": true,
       "gnetId": null,
-      "graphTooltip": 0,
+      "graphTooltip": 1,
       "id": null,
       "links": [],
       "panels": [
-        {
-          "datasource": "Prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 0
-          },
-          "id": 1,
-          "options": {
-            "legend": {
-              "calcs": ["mean", "max"],
-              "displayMode": "table",
-              "placement": "bottom"
-            },
-            "tooltip": {
-              "mode": "multi"
-            }
-          },
-          "pluginVersion": "8.0.0",
-          "targets": [
-            {
-              "expr": "sum(rate(container_cpu_usage_seconds_total[5m])) by (namespace)",
-              "legendFormat": "{{ namespace }}",
-              "refId": "A"
-            }
-          ],
-          "title": "CPU Usage by Namespace",
-          "type": "timeseries"
-        },
-        {
-          "datasource": "Prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "bytes"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 0
-          },
-          "id": 2,
-          "options": {
-            "legend": {
-              "calcs": ["mean", "max"],
-              "displayMode": "table",
-              "placement": "bottom"
-            },
-            "tooltip": {
-              "mode": "multi"
-            }
-          },
-          "pluginVersion": "8.0.0",
-          "targets": [
-            {
-              "expr": "sum(container_memory_usage_bytes) by (namespace)",
-              "legendFormat": "{{ namespace }}",
-              "refId": "A"
-            }
-          ],
-          "title": "Memory Usage by Namespace",
-          "type": "timeseries"
-        },
-        {
-          "datasource": "Prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisLabel": "Requests/sec",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 8
-          },
-          "id": 3,
-          "options": {
-            "legend": {
-              "calcs": ["mean", "max"],
-              "displayMode": "table",
-              "placement": "bottom"
-            },
-            "tooltip": {
-              "mode": "multi"
-            }
-          },
-          "pluginVersion": "8.0.0",
-          "targets": [
-            {
-              "expr": "sum(rate(http_requests_total[5m])) by (service)",
-              "legendFormat": "{{ service }}",
-              "refId": "A"
-            }
-          ],
-          "title": "HTTP Request Rate by Service",
-          "type": "timeseries"
-        },
-        {
-          "datasource": "Prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "ms"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 8
-          },
-          "id": 4,
-          "options": {
-            "legend": {
-              "calcs": ["mean", "max"],
-              "displayMode": "table",
-              "placement": "bottom"
-            },
-            "tooltip": {
-              "mode": "multi"
-            }
-          },
-          "pluginVersion": "8.0.0",
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))",
-              "legendFormat": "{{ service }} p95",
-              "refId": "A"
-            }
-          ],
-          "title": "HTTP Request Latency (p95) by Service",
-          "type": "timeseries"
-        },
-        {
-          "datasource": "Loki",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 24,
-            "x": 0,
-            "y": 16
-          },
-          "id": 5,
-          "options": {
-            "showLabels": false,
-            "showTime": true
-          },
-          "pluginVersion": "8.0.0",
-          "targets": [
-            {
-              "expr": "{namespace=~\"auth|flag|targeting|evaluation|analytics\"}",
-              "refId": "A"
-            }
-          ],
-          "title": "Real-time Logs - Microservices",
-          "type": "logs"
-        },
         {
           "datasource": "Prometheus",
           "fieldConfig": {
@@ -375,12 +38,12 @@ data:
                 {
                   "options": {
                     "0": {
-                      "color": "green",
-                      "text": "UP"
-                    },
-                    "1": {
                       "color": "red",
                       "text": "DOWN"
+                    },
+                    "1": {
+                      "color": "green",
+                      "text": "UP"
                     }
                   },
                   "type": "value"
@@ -392,6 +55,10 @@ data:
                   {
                     "color": "red",
                     "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
                   }
                 ]
               },
@@ -401,32 +68,32 @@ data:
           },
           "gridPos": {
             "h": 5,
-            "w": 6,
+            "w": 8,
             "x": 0,
-            "y": 26
+            "y": 0
           },
           "id": 6,
           "options": {
-            "colorMode": "value",
+            "colorMode": "background",
             "graphMode": "none",
             "justifyMode": "center",
-            "orientation": "auto",
+            "orientation": "horizontal",
             "reduceOptions": {
               "values": false,
               "calcs": ["lastNotNull"]
             },
             "text": {},
-            "textMode": "auto"
+            "textMode": "value_and_name"
           },
-          "pluginVersion": "8.0.0",
+          "pluginVersion": "10.0.0",
           "targets": [
             {
-              "expr": "up{job=~\"auth|flag|targeting|evaluation|analytics\"}",
-              "legendFormat": "{{ job }}",
+              "expr": "max by (namespace) (kube_pod_status_ready{namespace=~\"auth|flag|targeting|evaluation|analytics\", condition=\"true\"})",
+              "legendFormat": "{{ namespace }}",
               "refId": "A"
             }
           ],
-          "title": "Service Health Status",
+          "title": "Saúde dos Microsserviços (ToggleMaster)",
           "type": "stat"
         },
         {
@@ -452,9 +119,9 @@ data:
           },
           "gridPos": {
             "h": 5,
-            "w": 6,
-            "x": 6,
-            "y": 26
+            "w": 4,
+            "x": 8,
+            "y": 0
           },
           "id": 7,
           "options": {
@@ -469,7 +136,7 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "8.0.0",
+          "pluginVersion": "10.0.0",
           "targets": [
             {
               "expr": "count(kube_pod_status_phase{phase=\"Running\"})",
@@ -477,7 +144,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "Total Running Pods",
+          "title": "Total de Pods Ativos",
           "type": "stat"
         },
         {
@@ -494,6 +161,14 @@ data:
                   {
                     "color": "green",
                     "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 70
+                  },
+                  {
+                    "color": "red",
+                    "value": 85
                   }
                 ]
               },
@@ -505,7 +180,7 @@ data:
             "h": 5,
             "w": 6,
             "x": 12,
-            "y": 26
+            "y": 0
           },
           "id": 8,
           "options": {
@@ -520,15 +195,15 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "8.0.0",
+          "pluginVersion": "10.0.0",
           "targets": [
             {
-              "expr": "(sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))) * 100",
-              "legendFormat": "Error Rate %",
+              "expr": "avg(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) * 100",
+              "legendFormat": "CPU Cluster %",
               "refId": "A"
             }
           ],
-          "title": "API Error Rate",
+          "title": "Uso de CPU do Cluster (%)",
           "type": "stat"
         },
         {
@@ -543,12 +218,12 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
+                    "color": "blue",
                     "value": null
                   }
                 ]
               },
-              "unit": "rps"
+              "unit": "short"
             },
             "overrides": []
           },
@@ -556,7 +231,7 @@ data:
             "h": 5,
             "w": 6,
             "x": 18,
-            "y": 26
+            "y": 0
           },
           "id": 9,
           "options": {
@@ -571,32 +246,254 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "8.0.0",
+          "pluginVersion": "10.0.0",
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total[5m]))",
-              "legendFormat": "Total RPS",
+              "expr": "sum(otelcol_receiver_accepted_spans) or vector(0)",
+              "legendFormat": "Spans Recebidos",
               "refId": "A"
             }
           ],
-          "title": "Total Request Rate",
+          "title": "Total de Traces (Spans OTel)",
           "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "lineWidth": 2,
+                "showPoints": "never"
+              },
+              "unit": "cores"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 5
+          },
+          "id": 1,
+          "options": {
+            "legend": {
+              "calcs": ["mean", "max"],
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=~\"auth|flag|targeting|evaluation|analytics|monitoring\"}[5m])) by (namespace)",
+              "legendFormat": "{{ namespace }}",
+              "refId": "A"
+            }
+          ],
+          "title": "Uso de CPU por Microsserviço / Namespace",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "lineWidth": 2,
+                "showPoints": "never"
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 5
+          },
+          "id": 2,
+          "options": {
+            "legend": {
+              "calcs": ["mean", "max"],
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=~\"auth|flag|targeting|evaluation|analytics|monitoring\"}) by (namespace)",
+              "legendFormat": "{{ namespace }}",
+              "refId": "A"
+            }
+          ],
+          "title": "Uso de Memória por Microsserviço / Namespace",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisLabel": "req/s (pacotes/s)",
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "lineWidth": 2,
+                "showPoints": "never"
+              },
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 13
+          },
+          "id": 3,
+          "options": {
+            "legend": {
+              "calcs": ["mean", "max"],
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "expr": "sum(rate(container_network_receive_packets_total{namespace=~\"auth|flag|targeting|evaluation|analytics\"}[2m])) by (namespace)",
+              "legendFormat": "{{ namespace }}",
+              "refId": "A"
+            }
+          ],
+          "title": "Taxa de Requisições / Tráfego de Rede por Microsserviço",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisLabel": "spans/s",
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "lineWidth": 2,
+                "showPoints": "never"
+              },
+              "unit": "ops"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 13
+          },
+          "id": 4,
+          "options": {
+            "legend": {
+              "calcs": ["mean", "max"],
+              "displayMode": "table",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "expr": "sum(rate(otelcol_receiver_accepted_spans[2m])) by (receiver)",
+              "legendFormat": "Recebidos ({{ receiver }})",
+              "refId": "A"
+            },
+            {
+              "expr": "sum(rate(otelcol_exporter_sent_spans[2m])) by (exporter)",
+              "legendFormat": "Exportados ({{ exporter }})",
+              "refId": "B"
+            }
+          ],
+          "title": "Taxa de Traces OpenTelemetry (Spans/s -> Jaeger)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Loki",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 21
+          },
+          "id": 5,
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "prettifyLogMessage": false,
+            "showCommonLabels": false,
+            "showLabels": true,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "expr": "{namespace=~\"auth|flag|targeting|evaluation|analytics\"}",
+              "refId": "A"
+            }
+          ],
+          "title": "Logs em Tempo Real dos Microsserviços (Loki)",
+          "type": "logs"
         }
       ],
       "refresh": "10s",
-      "schemaVersion": 27,
+      "schemaVersion": 38,
       "style": "dark",
-      "tags": ["togglemaster", "monitoring"],
+      "tags": ["togglemaster", "monitoring", "observability"],
       "templating": {
         "list": []
       },
       "time": {
-        "from": "now-6h",
+        "from": "now-1h",
         "to": "now"
       },
       "timepicker": {},
       "timezone": "",
       "title": "ToggleMaster - Cluster Health & Observability",
       "uid": "togglemaster-health",
-      "version": 1
+      "version": 2
     }
