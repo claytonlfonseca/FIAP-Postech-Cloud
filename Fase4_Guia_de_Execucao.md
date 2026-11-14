@@ -31,6 +31,7 @@ GitOps/monitoramento quando desejado e remover os recursos ao final.
 - [14. Verificações gerais de saúde e diagnóstico](#14-verificações-gerais-de-saúde-e-diagnóstico)
 - [15. Instalar ArgoCD (opcional para deploy manual)](#15-instalar-argocd-opcional-para-deploy-manual)
 - [16. Instalar monitoramento (opcional)](#16-instalar-monitoramento-opcional)
+  - [16.1 Instalar e validar OpenTelemetry Collector](#161-instalar-e-validar-opentelemetry-collector)
 - [17. Encerramento completo e prevenção de cobranças](#17-encerramento-completo-e-prevenção-de-cobranças)
 - [18. Checklist de conclusão](#18-checklist-de-conclusão)
 
@@ -1106,7 +1107,7 @@ encaminhamento após confirmar que o pod está pronto.
 | `ImagePullBackOff` | URL/tag ECR, arquitetura `amd64`/`arm64`, acesso de pull dos nodes. |
 | `PVC Pending` | EBS CSI, gp3, zonas e eventos; confirme o controller, não apenas os pods `ebs-csi-node`. |
 | `Cannot iterate over null` no script Argo/monitoring | O manifesto multi-documento precisa ser agrupado como lista JSON; use o script corrigido deste projeto. |
-| `traces export ... localhost:4318 connection refused` | Não há collector no próprio pod; traces não são exportados. Não significa, sozinho, falha de aplicação/SQS/DynamoDB. |
+| `traces export ... localhost:4318 connection refused` | O endpoint OTLP não foi apontado para o collector do cluster; aplique `k8s/argocd/argocd-otel-app.yaml` e os ConfigMaps com `OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector.monitoring.svc.cluster.local:4318` (Seção 16.1). |
 | `No resources found` ao listar Applications | Applications ainda não foram criadas; isso não comprova falha da CRD ou do ArgoCD. |
 
 ## 15. Instalar ArgoCD (opcional para deploy manual)
@@ -1126,6 +1127,10 @@ helm upgrade --install argocd argo/argo-cd \
   --wait --timeout 15m
 kubectl wait --for=condition=Established \
   crd/applications.argoproj.io --timeout=120s
+kubectl patch configmap argocd-cmd-params-cm -n argocd \
+  --type merge \
+  -p '{"data":{"controller.diff.server.side":"true"}}'
+kubectl rollout restart statefulset/argocd-application-controller -n argocd
 kubectl get pods -n argocd
 ```
 
@@ -1223,6 +1228,45 @@ kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
 Abra `http://localhost:3000`. Use a credencial configurada com segurança no
 chart/Secret; não assuma que a senha padrão é segura.
 
+### 16.1 Instalar e validar OpenTelemetry Collector
+
+Os cinco microsserviços (`auth`, `flag`, `targeting`, `evaluation` e
+`analytics`) exportam traces OTLP/HTTP para o endpoint configurado em
+`OTEL_EXPORTER_OTLP_ENDPOINT` nos respectivos ConfigMaps
+(`http://otel-collector.monitoring.svc.cluster.local:4318`).
+
+O projeto disponibiliza duas formas equivalentes de instalar o OpenTelemetry
+Collector no namespace `monitoring`:
+
+1. **Via ArgoCD (Application Helm `k8s/argocd/argocd-otel-app.yaml`):**
+
+   ```bash
+   kubectl apply -f "$PROJECT_ROOT/k8s/argocd/argocd-otel-app.yaml"
+   kubectl get application otel-collector-helm -n argocd
+   ```
+
+   *(Alternativamente, na interface web do ArgoCD, clique em **+ NEW APP** →
+   **EDIT AS YAML**, cole o conteúdo de `k8s/argocd/argocd-otel-app.yaml` e
+   clique em **CREATE**).*
+
+2. **Via Helm CLI diretamente (`k8s/monitoring/otel-collector-values.yaml`):**
+
+   ```bash
+   helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+   helm repo update
+   helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
+     --namespace monitoring --create-namespace \
+     -f "$PROJECT_ROOT/k8s/monitoring/otel-collector-values.yaml"
+   ```
+
+Confirme se o pod e o Service `otel-collector` (portas `4317` gRPC e `4318`
+HTTP) estão ativos e acompanhe os traces recebidos em tempo real:
+
+```bash
+kubectl get pods,svc -n monitoring -l app.kubernetes.io/name=opentelemetry-collector
+kubectl logs -n monitoring deployment/otel-collector --tail=100 -f
+```
+
 ## 17. Encerramento completo e prevenção de cobranças
 
 Fechar o WSL, parar Docker, encerrar `port-forward` ou fechar o VS Code **não
@@ -1259,7 +1303,7 @@ Antes de destruir:
 
    ```bash
    kubectl get applications -n argocd
-   kubectl delete application prometheus-helm loki-helm monitoring-stack \
+   kubectl delete application prometheus-helm loki-helm monitoring-stack otel-collector-helm \
      -n argocd
    ```
 

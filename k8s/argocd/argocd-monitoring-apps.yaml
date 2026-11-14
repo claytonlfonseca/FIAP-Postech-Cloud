@@ -3,6 +3,7 @@ kind: Application
 metadata:
   name: monitoring-stack
   namespace: argocd
+
 spec:
   project: default
   source:
@@ -28,6 +29,7 @@ kind: Application
 metadata:
   name: prometheus-helm
   namespace: argocd
+
 spec:
   project: default
   source:
@@ -50,7 +52,7 @@ spec:
                       storage: 10Gi
             serviceMonitorSelector: {}
             podMonitorSelector: {}
-        
+
         grafana:
           enabled: true
           adminPassword: "admin123"
@@ -71,10 +73,14 @@ spec:
                   type: loki
                   url: http://loki:3100
                   access: proxy
-        
+                - name: Jaeger
+                  type: jaeger
+                  url: http://jaeger-collector.monitoring.svc.cluster.local:16686
+                  access: proxy
+
         prometheus-node-exporter:
           enabled: true
-        
+
         kube-state-metrics:
           enabled: true
   destination:
@@ -94,6 +100,7 @@ kind: Application
 metadata:
   name: loki-helm
   namespace: argocd
+
 spec:
   project: default
   source:
@@ -119,7 +126,7 @@ spec:
                 kvstore:
                   store: inmemory
                 replication_factor: 1
-          
+
           schema_config:
             configs:
               - from: 2020-10-24
@@ -130,25 +137,25 @@ spec:
                   index:
                     prefix: index_
                     period: 24h
-          
+
           server:
             http_listen_port: 3100
             log_level: info
-          
+
           storage_config:
             boltdb_shipper:
               active_index_directory: /loki/index
               cache_location: /loki/cache
             filesystem:
               directory: /loki/chunks
-          
+
           limits_config:
             enforce_metric_name: false
             reject_old_samples: true
             reject_old_samples_max_age: 168h
             ingestion_rate_mb: 16
             ingestion_burst_size_mb: 20
-        
+
         promtail:
           enabled: true
           config:
