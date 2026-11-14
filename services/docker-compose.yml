@@ -132,6 +132,8 @@ services:
       AWS_REGION: "us-east-1"
       AWS_SQS_URL: ""
       AWS_ENDPOINT_URL: "http://dynamodb-local:8000"
+      AWS_ACCESS_KEY_ID: "dummy"
+      AWS_SECRET_ACCESS_KEY: "dummy"
       OTEL_SERVICE_NAME: "evaluation-service"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
@@ -171,6 +173,92 @@ services:
     ports:
       - "8005:8005"
 
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686" # Jaeger UI
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:2.9.8
+    container_name: loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: prometheus
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        cat <<'EOF' > /tmp/prometheus.yml
+        global:
+          scrape_interval: 10s
+        scrape_configs:
+          - job_name: 'prometheus'
+            static_configs:
+              - targets: ['localhost:9090']
+          - job_name: 'otel-collector-internal'
+            static_configs:
+              - targets: ['otel-collector:8888']
+          - job_name: 'otel-collector-exporter'
+            static_configs:
+              - targets: ['otel-collector:8889']
+        EOF
+        exec /bin/prometheus --config.file=/tmp/prometheus.yml --storage.tsdb.path=/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - otel-collector
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin123"
+      GF_PATHS_PROVISIONING: "/tmp/provisioning"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /tmp/provisioning/datasources /tmp/provisioning/dashboards /tmp/provisioning/plugins /tmp/provisioning/alerting /tmp/provisioning/access-control
+        cat <<'EOF' > /tmp/provisioning/datasources/datasources.yaml
+        apiVersion: 1
+        datasources:
+          - name: Prometheus
+            type: prometheus
+            uid: prometheus
+            url: http://prometheus:9090
+            access: proxy
+            isDefault: true
+          - name: Loki
+            type: loki
+            uid: loki
+            url: http://loki:3100
+            access: proxy
+          - name: Jaeger
+            type: jaeger
+            uid: jaeger
+            url: http://jaeger:16686
+            access: proxy
+        EOF
+        exec /run.sh
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+      - jaeger
+    restart: unless-stopped
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
@@ -179,7 +267,11 @@ services:
       - "4318:4318"   # OTLP HTTP
       - "13133:13133" # health_check
       - "8888:8888"   # métricas internas do collector
+      - "8889:8889"   # exporter prometheus
     command: ["--config", "/etc/otel/otel-collector-config.yaml"]
+    depends_on:
+      - jaeger
+      - loki
     restart: unless-stopped
     volumes:
       - ./otel-collector-config.yaml:/etc/otel/otel-collector-config.yaml
