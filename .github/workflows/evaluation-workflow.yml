@@ -195,7 +195,6 @@ jobs:
             sed -i "s|image: .*/evaluation:.*|image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY }}:${{ steps.generate-tag.outputs.IMAGE_TAG }}|g" k8s/deployments/evaluation-deployment.yaml
             git config --global user.name 'github-actions[bot]'
             git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-            git pull origin main --rebase
             git add k8s/deployments/evaluation-deployment.yaml
             git commit -m "GitOps: Deploy automático evaluation-service tag ${{ steps.generate-tag.outputs.IMAGE_TAG }} [skip ci]" || echo "Sem alterações para commitar"
-            git push
+            for i in 1 2 3 4 5; do git pull origin main --rebase && git push && break || sleep 3; done
