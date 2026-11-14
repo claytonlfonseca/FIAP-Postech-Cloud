@@ -175,6 +175,8 @@ kind: ServiceMonitor
 metadata:
   name: prometheus-self-monitor
   namespace: monitoring
+  labels:
+    release: prometheus
 spec:
   selector:
     matchLabels:
@@ -190,6 +192,8 @@ kind: ServiceMonitor
 metadata:
   name: grafana-monitor
   namespace: monitoring
+  labels:
+    release: prometheus
 spec:
   selector:
     matchLabels:
@@ -206,6 +210,8 @@ kind: ServiceMonitor
 metadata:
   name: loki-monitor
   namespace: monitoring
+  labels:
+    release: prometheus
 spec:
   selector:
     matchLabels:
@@ -221,6 +227,8 @@ kind: ServiceMonitor
 metadata:
   name: otel-collector-monitor
   namespace: monitoring
+  labels:
+    release: prometheus
 spec:
   selector:
     matchLabels:
