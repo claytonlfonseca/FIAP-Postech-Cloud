@@ -10,3 +10,5 @@ data:
   AWS_REGION: "us-east-2"
   AWS_SQS_URL: "https://sqs.us-east-2.amazonaws.com/197405022570/toggle-master-events"
   AWS_DYNAMODB_TABLE: "ToggleMasterAnalytics"
+  OTEL_SERVICE_NAME: "evaluation-service"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
