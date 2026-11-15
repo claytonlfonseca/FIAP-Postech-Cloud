@@ -1,3 +1,29 @@
 README_*
-aws/*
 terraform.tfstate
+
+# Local AWS CLI installation and exported access-key files
+/aws/dist/
+/aws/user_togglemaster_accessKeys*.csv
+
+# Local application state
+/.openpost/
+/services/docker-compose.yml
+
+# Kubernetes Secrets contain credentials, even when values are base64-encoded
+/k8s/secrets/
+
+# Terraform local state, plans, provider cache, and environment-specific vars
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+/terraform/terraform.tfvars
+
+# Private keys and local credential files
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example

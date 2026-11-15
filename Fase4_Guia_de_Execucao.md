@@ -437,7 +437,7 @@ criação foi cancelada. Corrija problemas de OIDC/IAM antes de avançar. Só
 depois do addon saudável:
 
 ```bash
-kubectl apply -f "$PROJECT_ROOT/k8s/gp3.yaml"
+kubectl apply -f "$PROJECT_ROOT/k8s/monitoring/gp3.yaml"
 kubectl get storageclass
 ```
 
