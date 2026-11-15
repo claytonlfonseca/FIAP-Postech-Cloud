@@ -16,7 +16,7 @@ spec:
       serviceAccountName: evaluation-service-account
       containers:
       - name: evaluation
-        image: 197405022570.dkr.ecr.us-east-2.amazonaws.com/evaluation:v1.0.0-25ba428
+        image: 197405022570.dkr.ecr.us-east-2.amazonaws.com/evaluation:v1.0.0-c808934
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8004
