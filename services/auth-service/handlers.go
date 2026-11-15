@@ -42,8 +42,11 @@ func (a *App) validateKeyHandler(w http.ResponseWriter, r *http.Request) {
 	keyHash := hashAPIKey(keyString)
 
 	// Verifica se o hash existe no banco de dados
+	const query = "SELECT id FROM api_keys WHERE key_hash = $1 AND is_active = true"
+	dbCtx, dbSpan := startDBSpan(r.Context(), "SELECT", query)
 	var id int
-	err := a.DB.QueryRow("SELECT id FROM api_keys WHERE key_hash = $1 AND is_active = true", keyHash).Scan(&id)
+	err := a.DB.QueryRowContext(dbCtx, query, keyHash).Scan(&id)
+	finishDBSpan(dbSpan, err)
 	if err != nil {
 		// Se não encontrar (sql.ErrNoRows), ou qualquer outro erro, a chave é inválida
 		log.Printf("Falha na validação da chave (hash: %s...): %v", keyHash[:6], err)
@@ -85,11 +88,11 @@ func (a *App) createKeyHandler(w http.ResponseWriter, r *http.Request) {
 	newKeyHash := hashAPIKey(newKey)
 
 	// Salva o hash no banco de dados
+	const insertQuery = "INSERT INTO api_keys (name, key_hash) VALUES ($1, $2) RETURNING id"
+	dbCtx, dbSpan := startDBSpan(r.Context(), "INSERT", insertQuery)
 	var newID int
-	err = a.DB.QueryRow(
-		"INSERT INTO api_keys (name, key_hash) VALUES ($1, $2) RETURNING id",
-		req.Name, newKeyHash,
-	).Scan(&newID)
+	err = a.DB.QueryRowContext(dbCtx, insertQuery, req.Name, newKeyHash).Scan(&newID)
+	finishDBSpan(dbSpan, err)
 
 	if err != nil {
 		log.Printf("Erro ao salvar a chave no banco: %v", err)

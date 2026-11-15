@@ -9,6 +9,9 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 from flask import Flask, jsonify
 from dotenv import load_dotenv
+from opentelemetry import trace
+from opentelemetry.propagate import extract
+from opentelemetry.trace import Status, StatusCode
 from telemetry import init_telemetry
 
 # Configura o logging
@@ -31,6 +34,12 @@ if not all([AWS_REGION, DYNAMODB_TABLE_NAME]):
 if not SQS_QUEUE_URL:
     log.warning("AWS_SQS_URL não definida. Worker SQS ficará desabilitado.")
 
+# Inicializa o Flask e o OpenTelemetry antes de criar clientes Boto3
+# para garantir que o BotocoreInstrumentor capture SQS e DynamoDB.
+app = Flask(__name__)
+init_telemetry(app)
+tracer = trace.get_tracer(__name__)
+
 # --- Clientes Boto3 ---
 # Criamos a sessão uma vez
 try:
@@ -50,47 +59,75 @@ except Exception as e:
 
 # --- SQS Worker ---
 
+def extract_trace_context(message):
+    """Extrai o contexto W3C (traceparent/tracestate) dos MessageAttributes do SQS."""
+    attrs = message.get("MessageAttributes") or {}
+    carrier = {}
+    for key, attr in attrs.items():
+        if isinstance(attr, dict) and attr.get("StringValue"):
+            carrier[key.lower()] = attr["StringValue"]
+    return extract(carrier)
+
+
 def process_message(message):
     """ Processa uma única mensagem SQS e a insere no DynamoDB """
-    try:
-        log.info(f"Processando mensagem ID: {message['MessageId']}")
-        body = json.loads(message['Body'])
-        
-        # Gera um ID único para o item no DynamoDB
-        event_id = str(uuid.uuid4())
-        
-        # Constrói o item no formato do DynamoDB
-        item = {
-            'eventId': {'S': event_id},
-            'user_id': {'S': body['user_id']},
-            'flag_name': {'S': body['flag_name']},
-            'result': {'BOOL': body['result']},
-            'timestamp': {'S': body['timestamp']}
-        }
-        
-        # Insere no DynamoDB
-        dynamodb_client.put_item(
-            TableName=DYNAMODB_TABLE_NAME,
-            Item=item
-        )
-        
-        log.info(f"Evento {event_id} (Flag: {body['flag_name']}) salvo no DynamoDB.")
-        
-        # Se tudo deu certo, deleta a mensagem da fila
-        sqs_client.delete_message(
-            QueueUrl=SQS_QUEUE_URL,
-            ReceiptHandle=message['ReceiptHandle']
-        )
-        
-    except json.JSONDecodeError:
-        log.error(f"Erro ao decodificar JSON da mensagem ID: {message['MessageId']}")
-        # Não deleta a mensagem, pode ser uma "poison pill"
-    except ClientError as e:
-        log.error(f"Erro do Boto3 (DynamoDB ou SQS) ao processar {message['MessageId']}: {e}")
-        # Não deleta a mensagem, tenta novamente
-    except Exception as e:
-        log.error(f"Erro inesperado ao processar {message['MessageId']}: {e}")
-        # Não deleta a mensagem, tenta novamente
+    parent_ctx = extract_trace_context(message)
+    with tracer.start_as_current_span(
+        "sqs consume evaluation-event",
+        context=parent_ctx,
+        kind=trace.SpanKind.CONSUMER,
+        attributes={
+            "messaging.system": "aws_sqs",
+            "messaging.operation": "process",
+            "peer.service": "aws-sqs",
+            "messaging.message.id": message.get("MessageId", ""),
+        },
+    ) as span:
+        try:
+            log.info(f"Processando mensagem ID: {message['MessageId']}")
+            body = json.loads(message['Body'])
+
+            # Gera um ID único para o item no DynamoDB
+            event_id = str(uuid.uuid4())
+
+            # Constrói o item no formato do DynamoDB
+            item = {
+                'eventId': {'S': event_id},
+                'user_id': {'S': body['user_id']},
+                'flag_name': {'S': body['flag_name']},
+                'result': {'BOOL': body['result']},
+                'timestamp': {'S': body['timestamp']}
+            }
+
+            # Insere no DynamoDB
+            dynamodb_client.put_item(
+                TableName=DYNAMODB_TABLE_NAME,
+                Item=item
+            )
+
+            log.info(f"Evento {event_id} (Flag: {body['flag_name']}) salvo no DynamoDB.")
+
+            # Se tudo deu certo, deleta a mensagem da fila
+            sqs_client.delete_message(
+                QueueUrl=SQS_QUEUE_URL,
+                ReceiptHandle=message['ReceiptHandle']
+            )
+
+        except json.JSONDecodeError as e:
+            span.record_exception(e)
+            span.set_status(Status(StatusCode.ERROR, str(e)))
+            log.error(f"Erro ao decodificar JSON da mensagem ID: {message['MessageId']}")
+            # Não deleta a mensagem, pode ser uma "poison pill"
+        except ClientError as e:
+            span.record_exception(e)
+            span.set_status(Status(StatusCode.ERROR, str(e)))
+            log.error(f"Erro do Boto3 (DynamoDB ou SQS) ao processar {message['MessageId']}: {e}")
+            # Não deleta a mensagem, tenta novamente
+        except Exception as e:
+            span.record_exception(e)
+            span.set_status(Status(StatusCode.ERROR, str(e)))
+            log.error(f"Erro inesperado ao processar {message['MessageId']}: {e}")
+            # Não deleta a mensagem, tenta novamente
 
 def sqs_worker_loop():
     """ Loop principal do worker que ouve a fila SQS """
@@ -105,7 +142,8 @@ def sqs_worker_loop():
             response = sqs_client.receive_message(
                 QueueUrl=SQS_QUEUE_URL,
                 MaxNumberOfMessages=10,  # Processa em lotes de até 10
-                WaitTimeSeconds=20
+                WaitTimeSeconds=20,
+                MessageAttributeNames=['All'],
             )
             
             messages = response.get('Messages', [])
@@ -126,9 +164,6 @@ def sqs_worker_loop():
             time.sleep(10)
 
 # --- Servidor Flask (Apenas para Health Check) ---
-
-app = Flask(__name__)
-init_telemetry(app)
 
 @app.route('/health')
 def health():

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -33,7 +34,7 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. Obter a decisão (lógica de cache/serviço está em evaluator.go)
-	result, err := a.getDecision(userID, flagName)
+	result, err := a.getDecision(r.Context(), userID, flagName)
 	if err != nil {
 		// Se o erro for "não encontrado", retornamos 'false' (comportamento seguro)
 		if _, ok := err.(*NotFoundError); ok {
@@ -47,8 +48,8 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 3. Enviar evento para SQS (assincronamente)
-	// Isso não bloqueia a resposta para o cliente.
-	go a.sendEvaluationEvent(userID, flagName, result)
+	// Desacopla o cancelamento da requisição HTTP mantendo o trace context ativo.
+	go a.sendEvaluationEvent(context.WithoutCancel(r.Context()), userID, flagName, result)
 
 	// 4. Retornar a resposta
 	w.WriteHeader(http.StatusOK)
