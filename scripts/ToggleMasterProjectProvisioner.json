@@ -1,0 +1,271 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ManageProjectInfrastructureInSelectedRegion",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:*",
+                "eks:*",
+                "rds:*",
+                "elasticache:*",
+                "dynamodb:*",
+                "sqs:*",
+                "ecr:*",
+                "autoscaling:Describe*"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "us-east-2"
+                }
+            }
+        },
+        {
+            "Sid": "ManageTerraformStateBucket",
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateBucket",
+                "s3:DeleteBucket",
+                "s3:GetAccelerateConfiguration",
+                "s3:GetBucketAcl",
+                "s3:GetBucketCORS",
+                "s3:GetBucketLocation",
+                "s3:GetBucketLogging",
+                "s3:GetBucketNotification",
+                "s3:GetBucketObjectLockConfiguration",
+                "s3:GetBucketOwnershipControls",
+                "s3:GetBucketPolicy",
+                "s3:GetBucketPolicyStatus",
+                "s3:GetBucketPublicAccessBlock",
+                "s3:GetBucketRequestPayment",
+                "s3:GetBucketTagging",
+                "s3:GetBucketVersioning",
+                "s3:GetBucketWebsite",
+                "s3:GetEncryptionConfiguration",
+                "s3:GetLifecycleConfiguration",
+                "s3:GetReplicationConfiguration",
+                "s3:ListBucket",
+                "s3:ListBucketVersions",
+                "s3:PutBucketTagging",
+                "s3:PutBucketVersioning",
+                "s3:PutEncryptionConfiguration",
+                "s3:PutBucketPublicAccessBlock"
+            ],
+            "Resource": "arn:aws:s3:::togglemaster-tfstate-197405022570"
+        },
+        {
+            "Sid": "ManageTerraformStateObjects",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:DeleteObjectVersion"
+            ],
+            "Resource": "arn:aws:s3:::togglemaster-tfstate-197405022570/*"
+        },
+        {
+            "Sid": "ManageProjectCloudFormationStacks",
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:CreateStack",
+                "cloudformation:UpdateStack",
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:DescribeStackResources",
+                "cloudformation:GetTemplate",
+                "cloudformation:GetTemplateSummary",
+                "cloudformation:ListStackResources",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:DeleteChangeSet",
+                "cloudformation:DescribeChangeSet",
+                "cloudformation:ContinueUpdateRollback",
+                "cloudformation:CancelUpdateStack"
+            ],
+            "Resource": [
+                "arn:aws:cloudformation:us-east-2:197405022570:stack/eksctl-*/*",
+                "arn:aws:cloudformation:us-east-2:197405022570:stack/togglemaster-*/*"
+            ]
+        },
+        {
+            "Sid": "ListProjectCloudFormationStacks",
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:ListStacks"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "us-east-2"
+                }
+            }
+        },
+        {
+            "Sid": "ManageProjectIamRolesAndPolicies",
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:GetRole",
+                "iam:UpdateAssumeRolePolicy",
+                "iam:TagRole",
+                "iam:UntagRole",
+                "iam:ListRoleTags",
+                "iam:AttachRolePolicy",
+                "iam:DetachRolePolicy",
+                "iam:ListAttachedRolePolicies",
+                "iam:ListRolePolicies",
+                "iam:GetRolePolicy",
+                "iam:ListInstanceProfilesForRole"
+            ],
+            "Resource": "arn:aws:iam::197405022570:role/togglemaster-*",
+            "Condition": {
+                "StringLikeIfExists": {
+                    "iam:PolicyARN": [
+                        "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
+                        "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController",
+                        "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+                        "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+                        "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+                        "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy",
+                        "arn:aws:iam::197405022570:policy/togglemaster-*"
+                    ]
+                }
+            }
+        },
+        {
+            "Sid": "ReadEKSNodegroupServiceLinkedRole",
+            "Effect": "Allow",
+            "Action": "iam:GetRole",
+            "Resource": "*"
+        },
+        {
+            "Sid": "PassProjectRolesToRequiredAwsServices",
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": "arn:aws:iam::197405022570:role/togglemaster-*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": [
+                        "eks.amazonaws.com",
+                        "ec2.amazonaws.com",
+                        "cloudformation.amazonaws.com"
+                    ]
+                }
+            }
+        },
+        {
+            "Sid": "ManageProjectIamPolicies",
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreatePolicy",
+                "iam:DeletePolicy",
+                "iam:GetPolicy",
+                "iam:GetPolicyVersion",
+                "iam:ListPolicyVersions",
+                "iam:CreatePolicyVersion",
+                "iam:DeletePolicyVersion",
+                "iam:SetDefaultPolicyVersion",
+                "iam:ListEntitiesForPolicy"
+            ],
+            "Resource": "arn:aws:iam::197405022570:policy/togglemaster-*"
+        },
+        {
+            "Sid": "InspectIamAndReadProjectDatabaseSecrets",
+            "Effect": "Allow",
+            "Action": [
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:GetSecretValue"
+            ],
+            "Resource": "arn:aws:secretsmanager:us-east-2:197405022570:secret:rds!db-*"
+        },
+        {
+            "Sid": "AllowRdsToCreateManagedDatabaseSecrets",
+            "Effect": "Allow",
+            "Action": [
+                "secretsmanager:CreateSecret"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "us-east-2"
+                }
+            }
+        },
+        {
+            "Sid": "TagProjectDatabaseSecrets",
+            "Effect": "Allow",
+            "Action": [
+                "secretsmanager:TagResource"
+            ],
+            "Resource": "arn:aws:secretsmanager:us-east-2:197405022570:secret:rds!db-*"
+        },
+        {
+            "Sid": "ListIamResources",
+            "Effect": "Allow",
+            "Action": [
+                "iam:ListRoles",
+                "iam:ListPolicies",
+                "iam:ListOpenIDConnectProviders"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "ManageProjectOpenIdConnectProvider",
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreateOpenIDConnectProvider",
+                "iam:DeleteOpenIDConnectProvider",
+                "iam:UpdateOpenIDConnectProviderThumbprint",
+                "iam:AddClientIDToOpenIDConnectProvider",
+                "iam:RemoveClientIDFromOpenIDConnectProvider",
+                "iam:TagOpenIDConnectProvider",
+                "iam:UntagOpenIDConnectProvider",
+                "iam:GetOpenIDConnectProvider"
+            ],
+            "Resource": "arn:aws:iam::197405022570:oidc-provider/*"
+        },
+        {
+            "Sid": "CreateRequiredServiceLinkedRoles",
+            "Effect": "Allow",
+            "Action": "iam:CreateServiceLinkedRole",
+            "Resource": "*",
+            "Condition": {
+                "StringLike": {
+                    "iam:AWSServiceName": [
+                        "eks.amazonaws.com",
+                        "eks-nodegroup.amazonaws.com",
+                        "eks-fargate-pods.amazonaws.com",
+                        "elasticache.amazonaws.com",
+                        "rds.amazonaws.com",
+                        "autoscaling.amazonaws.com"
+                    ]
+                }
+            }
+        },
+        {
+            "Sid": "ManageKmsKeysForRdsEncryption",
+            "Effect": "Allow",
+            "Action": [
+                "kms:GenerateDataKey",
+                "kms:Decrypt",
+                "kms:Encrypt",
+                "kms:ReEncrypt*",
+                "kms:ListKeys",
+                "kms:DescribeKey",
+                "kms:CreateGrant",
+                "kms:ListAliases"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "GetCallerIdentity",
+            "Effect": "Allow",
+            "Action": "sts:GetCallerIdentity",
+            "Resource": "*"
+        }
+    ]
+}
