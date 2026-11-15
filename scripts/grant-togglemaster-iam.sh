@@ -1,33 +1,69 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-TARGET_USER="${1:-user_togglemaster}"
+TARGET_USER_HINT="${1:-}"
 POLICY_NAME="ToggleMasterProjectProvisioner"
-REGION="${AWS_REGION:-us-east-2}"
+PROFILE_NAME="${AWS_PROFILE:-${AWS_DEFAULT_PROFILE:-default}}"
 
 if ! command -v aws >/dev/null 2>&1; then
-  echo "Erro: AWS CLI não encontrado no CloudShell." >&2
+  echo "Erro: AWS CLI não encontrado." >&2
   exit 1
 fi
 
-ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
-CALLER_ARN="$(aws sts get-caller-identity --query Arn --output text)"
+aws_cli() {
+  aws --profile "$PROFILE_NAME" "$@"
+}
+
+if ! REGION="$(aws_cli configure get region 2>/dev/null)" || [[ -z "$REGION" || "$REGION" == "None" ]]; then
+  echo "Erro: o profile AWS '${PROFILE_NAME}' não possui uma região configurada." >&2
+  echo "Configure a região no profile e execute novamente." >&2
+  exit 1
+fi
+
+if [[ -r /dev/tty && -w /dev/tty ]]; then
+  if [[ -n "$TARGET_USER_HINT" ]]; then
+    if ! read -r -p "Usuário IAM que receberá a policy [${TARGET_USER_HINT}]: " TARGET_USER </dev/tty; then
+      echo "Erro: não foi possível ler o nome do usuário IAM." >&2
+      exit 1
+    fi
+    TARGET_USER="${TARGET_USER:-$TARGET_USER_HINT}"
+  else
+    if ! read -r -p "Digite o nome do usuário IAM que receberá a policy: " TARGET_USER </dev/tty; then
+      echo "Erro: não foi possível ler o nome do usuário IAM." >&2
+      exit 1
+    fi
+  fi
+elif [[ -n "$TARGET_USER_HINT" ]]; then
+  TARGET_USER="$TARGET_USER_HINT"
+else
+  echo "Erro: informe o usuário IAM como argumento quando executar sem terminal interativo." >&2
+  exit 1
+fi
+
+if [[ -z "$TARGET_USER" ]]; then
+  echo "Erro: o nome do usuário IAM não pode ficar vazio." >&2
+  exit 1
+fi
+
+ACCOUNT_ID="$(aws_cli sts get-caller-identity --query Account --output text)"
+CALLER_ARN="$(aws_cli sts get-caller-identity --query Arn --output text)"
+STATE_BUCKET_NAME="togglemaster-tfstate-${ACCOUNT_ID}"
 POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${POLICY_NAME}"
 
-if ! aws iam get-user --user-name "$TARGET_USER" >/dev/null; then
-  echo "Erro: o usuário IAM '$TARGET_USER' não existe na conta ${ACCOUNT_ID}." >&2
+if ! aws_cli iam get-user --user-name "$TARGET_USER" >/dev/null; then
+  echo "Erro: o usuário IAM '${TARGET_USER}' não existe na conta ${ACCOUNT_ID}." >&2
   exit 1
 fi
 
-if aws iam get-policy --policy-arn "$POLICY_ARN" >/dev/null 2>&1; then
-  ATTACHED_POLICY="$(aws iam list-attached-user-policies \
+if aws_cli iam get-policy --policy-arn "$POLICY_ARN" >/dev/null 2>&1; then
+  ATTACHED_POLICY="$(aws_cli iam list-attached-user-policies \
     --user-name "$TARGET_USER" \
     --query "AttachedPolicies[?PolicyArn=='${POLICY_ARN}'].PolicyArn | [0]" \
     --output text)"
 
   if [[ "$ATTACHED_POLICY" == "$POLICY_ARN" ]]; then
     echo "A policy ${POLICY_NAME} já está anexada a ${TARGET_USER}."
-    echo "Este script não atualiza uma policy existente; peça a um administrador IAM para publicar uma nova versão."
+    echo "Este script não altera policies existentes; peça a um administrador IAM para publicar uma nova versão."
     exit 0
   fi
 
@@ -44,17 +80,19 @@ cat >"$POLICY_FILE" <<EOF
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "ManageProjectInfrastructureInSelectedRegion",
+      "Sid": "RegionScoped",
       "Effect": "Allow",
       "Action": [
-        "ec2:*",
-        "eks:*",
-        "rds:*",
-        "elasticache:*",
+        "autoscaling:Describe*",
         "dynamodb:*",
-        "sqs:*",
+        "ec2:*",
         "ecr:*",
-        "autoscaling:Describe*"
+        "eks:*",
+        "elasticache:*",
+        "rds:*",
+        "sqs:*",
+        "logs:*",
+        "secretsmanager:CreateSecret"
       ],
       "Resource": "*",
       "Condition": {
@@ -64,7 +102,43 @@ cat >"$POLICY_FILE" <<EOF
       }
     },
     {
-      "Sid": "ManageTerraformStateBucket",
+      "Sid": "CloudFormation",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CancelUpdateStack",
+        "cloudformation:ContinueUpdateRollback",
+        "cloudformation:CreateChangeSet",
+        "cloudformation:CreateStack",
+        "cloudformation:DeleteChangeSet",
+        "cloudformation:DeleteStack",
+        "cloudformation:DescribeChangeSet",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:DescribeStacks",
+        "cloudformation:ExecuteChangeSet",
+        "cloudformation:GetTemplate",
+        "cloudformation:GetTemplateSummary",
+        "cloudformation:ListStackResources",
+        "cloudformation:UpdateStack"
+      ],
+      "Resource": [
+        "arn:aws:cloudformation:${REGION}:${ACCOUNT_ID}:stack/eksctl-*/*",
+        "arn:aws:cloudformation:${REGION}:${ACCOUNT_ID}:stack/togglemaster-*/*"
+      ]
+    },
+    {
+      "Sid": "ListCloudFormationStacks",
+      "Effect": "Allow",
+      "Action": "cloudformation:ListStacks",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "${REGION}"
+        }
+      }
+    },
+    {
+      "Sid": "S3Bucket",
       "Effect": "Allow",
       "Action": [
         "s3:CreateBucket",
@@ -73,100 +147,62 @@ cat >"$POLICY_FILE" <<EOF
         "s3:GetBucketAcl",
         "s3:GetBucketCORS",
         "s3:GetBucketLocation",
-        "s3:GetBucketPolicy",
-        "s3:GetBucketPolicyStatus",
-        "s3:GetBucketTagging",
-        "s3:PutBucketTagging",
-        "s3:DeleteBucketTagging",
         "s3:GetBucketLogging",
         "s3:GetBucketNotification",
         "s3:GetBucketObjectLockConfiguration",
         "s3:GetBucketOwnershipControls",
+        "s3:GetBucketPolicy",
+        "s3:GetBucketPolicyStatus",
         "s3:GetBucketPublicAccessBlock",
         "s3:GetBucketRequestPayment",
-        "s3:GetBucketWebsite",
+        "s3:GetBucketTagging",
         "s3:GetBucketVersioning",
-        "s3:PutBucketVersioning",
+        "s3:GetBucketWebsite",
         "s3:GetEncryptionConfiguration",
-        "s3:PutEncryptionConfiguration",
         "s3:GetLifecycleConfiguration",
         "s3:GetReplicationConfiguration",
-        "s3:PutBucketPublicAccessBlock",
         "s3:ListBucket",
-        "s3:ListBucketVersions"
+        "s3:ListBucketVersions",
+        "s3:PutBucketPublicAccessBlock",
+        "s3:PutBucketTagging",
+        "s3:PutBucketVersioning",
+        "s3:PutEncryptionConfiguration"
       ],
-      "Resource": "arn:aws:s3:::togglemaster-tfstate-*"
+      "Resource": "arn:aws:s3:::${STATE_BUCKET_NAME}"
     },
     {
-      "Sid": "ManageTerraformStateObjects",
+      "Sid": "S3Objects",
       "Effect": "Allow",
       "Action": [
-        "s3:GetObject",
-        "s3:PutObject",
         "s3:DeleteObject",
-        "s3:DeleteObjectVersion"
+        "s3:DeleteObjectVersion",
+        "s3:GetObject",
+        "s3:PutObject"
       ],
-      "Resource": "arn:aws:s3:::togglemaster-tfstate-*/*"
+      "Resource": "arn:aws:s3:::${STATE_BUCKET_NAME}/*"
     },
     {
-      "Sid": "ManageProjectCloudFormationStacks",
+      "Sid": "IAMRoles",
       "Effect": "Allow",
       "Action": [
-        "cloudformation:CreateStack",
-        "cloudformation:UpdateStack",
-        "cloudformation:DeleteStack",
-        "cloudformation:DescribeStacks",
-        "cloudformation:DescribeStackEvents",
-        "cloudformation:DescribeStackResources",
-        "cloudformation:GetTemplate",
-        "cloudformation:GetTemplateSummary",
-        "cloudformation:ListStackResources",
-        "cloudformation:CreateChangeSet",
-        "cloudformation:ExecuteChangeSet",
-        "cloudformation:DeleteChangeSet",
-        "cloudformation:DescribeChangeSet",
-        "cloudformation:ContinueUpdateRollback",
-        "cloudformation:CancelUpdateStack"
-      ],
-      "Resource": [
-        "arn:aws:cloudformation:${REGION}:${ACCOUNT_ID}:stack/eksctl-*/*",
-        "arn:aws:cloudformation:${REGION}:${ACCOUNT_ID}:stack/togglemaster-*/*"
-      ]
-    },
-    {
-      "Sid": "ListProjectCloudFormationStacks",
-      "Effect": "Allow",
-      "Action": [
-        "cloudformation:ListStacks"
+        "iam:AttachRolePolicy",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:DeleteRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole",
+        "iam:ListRolePolicies",
+        "iam:ListRoleTags",
+        "iam:PutRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:UpdateAssumeRolePolicy"
       ],
       "Resource": "*",
       "Condition": {
-        "StringEquals": {
-          "aws:RequestedRegion": "${REGION}"
-        }
-      }
-    },
-    {
-      "Sid": "ManageProjectIamRolesAndPolicies",
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreateRole",
-        "iam:DeleteRole",
-        "iam:GetRole",
-        "iam:UpdateAssumeRolePolicy",
-        "iam:TagRole",
-        "iam:UntagRole",
-        "iam:ListRoleTags",
-        "iam:AttachRolePolicy",
-        "iam:DetachRolePolicy",
-        "iam:ListAttachedRolePolicies",
-        "iam:ListRolePolicies",
-        "iam:GetRolePolicy",
-        "iam:ListInstanceProfilesForRole"
-      ],
-      "Resource": "arn:aws:iam::${ACCOUNT_ID}:role/togglemaster-*",
-      "Condition": {
-        "StringLikeIfExists": {
+        "ArnLikeIfExists": {
           "iam:PolicyARN": [
             "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
             "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController",
@@ -180,13 +216,13 @@ cat >"$POLICY_FILE" <<EOF
       }
     },
     {
-      "Sid": "ReadEKSNodegroupServiceLinkedRole",
+      "Sid": "IAMGetRole",
       "Effect": "Allow",
       "Action": "iam:GetRole",
       "Resource": "*"
     },
     {
-      "Sid": "PassProjectRolesToRequiredAwsServices",
+      "Sid": "IAMPassRole",
       "Effect": "Allow",
       "Action": "iam:PassRole",
       "Resource": "arn:aws:iam::${ACCOUNT_ID}:role/togglemaster-*",
@@ -201,73 +237,7 @@ cat >"$POLICY_FILE" <<EOF
       }
     },
     {
-      "Sid": "ManageProjectIamPolicies",
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreatePolicy",
-        "iam:DeletePolicy",
-        "iam:GetPolicy",
-        "iam:ListEntitiesForPolicy"
-      ],
-      "Resource": "arn:aws:iam::${ACCOUNT_ID}:policy/togglemaster-*"
-    },
-    {
-      "Sid": "InspectIamAndReadProjectDatabaseSecrets",
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:DescribeSecret",
-        "secretsmanager:GetSecretValue"
-      ],
-      "Resource": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:rds!db-togglemaster-*"
-    },
-    {
-      "Sid": "AllowRdsToCreateManagedDatabaseSecrets",
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:CreateSecret"
-      ],
-      "Resource": "*",
-      "Condition": {
-        "StringEquals": {
-          "aws:RequestedRegion": "${REGION}"
-        }
-      }
-    },
-    {
-      "Sid": "TagProjectDatabaseSecrets",
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:TagResource"
-      ],
-      "Resource": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:rds!db-togglemaster-*"
-    },
-    {
-      "Sid": "ListIamResources",
-      "Effect": "Allow",
-      "Action": [
-        "iam:ListRoles",
-        "iam:ListPolicies",
-        "iam:ListOpenIDConnectProviders"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "ManageProjectOpenIdConnectProvider",
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreateOpenIDConnectProvider",
-        "iam:DeleteOpenIDConnectProvider",
-        "iam:UpdateOpenIDConnectProviderThumbprint",
-        "iam:AddClientIDToOpenIDConnectProvider",
-        "iam:RemoveClientIDFromOpenIDConnectProvider",
-        "iam:TagOpenIDConnectProvider",
-        "iam:UntagOpenIDConnectProvider",
-        "iam:GetOpenIDConnectProvider"
-      ],
-      "Resource": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/*"
-    },
-    {
-      "Sid": "CreateRequiredServiceLinkedRoles",
+      "Sid": "IAMServiceLinkedRole",
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "*",
@@ -278,6 +248,7 @@ cat >"$POLICY_FILE" <<EOF
             "eks-nodegroup.amazonaws.com",
             "eks-fargate-pods.amazonaws.com",
             "elasticache.amazonaws.com",
+            "elasticloadbalancing.amazonaws.com",
             "rds.amazonaws.com",
             "autoscaling.amazonaws.com"
           ]
@@ -285,24 +256,54 @@ cat >"$POLICY_FILE" <<EOF
       }
     },
     {
-      "Sid": "ManageKmsKeysForRdsEncryption",
+      "Sid": "IAMPoliciesAndOIDC",
       "Effect": "Allow",
       "Action": [
-        "kms:GenerateDataKey",
-        "kms:Decrypt",
-        "kms:Encrypt",
-        "kms:ReEncrypt*",
-        "kms:ListKeys",
-        "kms:DescribeKey",
-        "kms:CreateGrant",
-        "kms:ListAliases"
+        "iam:AddClientIDToOpenIDConnectProvider",
+        "iam:CreateOpenIDConnectProvider",
+        "iam:CreatePolicy",
+        "iam:DeleteOpenIDConnectProvider",
+        "iam:DeletePolicy",
+        "iam:GetOpenIDConnectProvider",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:ListEntitiesForPolicy",
+        "iam:ListOpenIDConnectProviders",
+        "iam:ListPolicies",
+        "iam:ListRoles",
+        "iam:RemoveClientIDFromOpenIDConnectProvider",
+        "iam:TagOpenIDConnectProvider",
+        "iam:UntagOpenIDConnectProvider",
+        "iam:UpdateOpenIDConnectProviderThumbprint"
       ],
       "Resource": "*"
     },
     {
-      "Sid": "GetCallerIdentity",
+      "Sid": "SecretsAndKMS",
       "Effect": "Allow",
-      "Action": "sts:GetCallerIdentity",
+      "Action": [
+        "kms:CreateGrant",
+        "kms:Decrypt",
+        "kms:DescribeKey",
+        "kms:Encrypt",
+        "kms:GenerateDataKey",
+        "kms:ListAliases",
+        "kms:ListKeys",
+        "kms:ReEncrypt*",
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:TagResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "GlobalReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "elasticloadbalancing:Describe*",
+        "sts:GetCallerIdentity"
+      ],
       "Resource": "*"
     }
   ]
@@ -329,28 +330,32 @@ fi
 echo "Conta AWS: ${ACCOUNT_ID}"
 echo "Executado por: ${CALLER_ARN}"
 echo "Usuário que receberá a policy: ${TARGET_USER}"
+echo "Profile AWS: ${PROFILE_NAME}"
 echo "Região autorizada: ${REGION}"
+echo "Bucket de state autorizado: ${STATE_BUCKET_NAME}"
 echo
-echo "ATENÇÃO: ec2/eks/rds/elasticache/dynamodb/sqs/ecr podem ser gerenciados"
-echo "em toda a região, não somente nos recursos ToggleMaster; exclusões são possíveis."
-echo "A policy também administra roles/policies IAM do projeto e lê segredos RDS."
-echo "iam:GetRole e as ações KMS usam Resource '*'; isso amplia o acesso a roles e chaves da conta/região."
-echo "Acesso elevado: não use em conta compartilhada nem mantenha após o laboratório."
-read -r -p "Digite APPLY para criar e anexar a policy: " CONFIRMATION
+echo "ATENÇÃO: a policy concede permissões elevadas de infraestrutura e IAM."
+echo "As permissões S3 ficam limitadas ao bucket ${STATE_BUCKET_NAME}."
+echo "IAM roles/policies, segredos e chaves KMS incluem permissões amplas (*)."
+echo "Use somente em conta de laboratório e remova o acesso ao terminar."
+if ! read -r -p "Digite APPLY para criar e anexar a policy: " CONFIRMATION; then
+  echo "Erro: não foi possível ler a confirmação; nenhuma policy foi criada." >&2
+  exit 1
+fi
 
 if [[ "$CONFIRMATION" != "APPLY" ]]; then
   echo "Cancelado; nenhuma policy foi criada ou anexada."
   exit 0
 fi
 
-POLICY_ARN="$(aws iam create-policy \
+POLICY_ARN="$(aws_cli iam create-policy \
   --policy-name "$POLICY_NAME" \
   --description "Permissões para provisionar e operar a infraestrutura AWS do ToggleMaster" \
   --policy-document "file://${POLICY_FILE}" \
   --query 'Policy.Arn' \
   --output text)"
 
-aws iam attach-user-policy \
+aws_cli iam attach-user-policy \
   --user-name "$TARGET_USER" \
   --policy-arn "$POLICY_ARN"
 

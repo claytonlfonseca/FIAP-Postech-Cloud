@@ -9,10 +9,11 @@ project_name = "togglemaster"
 vpc_cidr = "10.0.0.0/16"
 
 eks_cluster_version     = "1.37"
+# Aumento da capacidade da instancia para antender a configuração dos Clusters
 eks_node_instance_types = ["m7i-flex.large"]
 eks_desired_size        = 2
 eks_min_size            = 2
-eks_max_size            = 3
+eks_max_size            = 4
 
 rds_databases = {
   auth      = { db_name = "auth" }

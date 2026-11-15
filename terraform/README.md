@@ -41,21 +41,34 @@ terraform/
   IAM de menor privilégio, não root.
 - O usuário/role usado para aplicar o Terraform precisa de permissão para
   criar recursos IAM (`iam:CreateRole`, `iam:AttachRolePolicy`, etc.), além
-  dos serviços de rede, EKS, RDS, ElastiCache, DynamoDB, SQS e ECR.
-- Para uma conta de laboratório, o script
+  dos serviços de rede, EKS, RDS, ElastiCache, DynamoDB, SQS, ECR e Load
+  Balancer (Gateway API / AWS Load Balancer Controller).
+- Antes do `terraform init`/`terraform apply`, execute a etapa de
+  permissionamento do usuário IAM que vai provisionar a infraestrutura:
+
+```bash
+cd "$PROJECT_ROOT"
+aws sts get-caller-identity
+bash scripts/grant-togglemaster-iam.sh
+```
+
+  O script pergunta no terminal qual usuário IAM receberá a policy; esse
+  usuário deve existir na conta. Pode-se passar um nome como argumento para
+  sugeri-lo, mas o script ainda perguntará antes de continuar. Ele lê a região
+  do profile selecionado por `AWS_PROFILE` (ou do profile `default`) e deriva
+  o bucket autorizado como `togglemaster-tfstate-${ACCOUNT_ID}`. Mantenha a
+  região do profile alinhada com a região do Terraform. Para uma conta de
+  laboratório, o script
   [`scripts/grant-togglemaster-iam.sh`](../scripts/grant-togglemaster-iam.sh)
-  cria e anexa uma policy gerenciada ao usuário `user_togglemaster`. Envie o
-  arquivo ao CloudShell e execute `bash grant-togglemaster-iam.sh`. Por padrão,
-  usa `us-east-2` por padrão; defina `AWS_REGION` antes de executá-lo se o projeto
-  usar outra região. A policy permite criar e excluir
-  recursos em vários serviços dessa região (não apenas recursos do projeto);
-  conceda-a temporariamente e remova-a ao terminar. O CloudShell precisa estar
-  aberto com uma identidade autorizada a criar policies IAM e anexá-las ao usuário.
-  O script inclui leitura da service-linked role do EKS Node Group. Se a policy
-  já existir, o script não a atualiza: um administrador IAM deve publicar uma
-  nova versão com as permissões atualizadas. O statement KMS e `iam:GetRole`
-  usam `Resource: "*"`, portanto concedem acesso mais amplo que o necessário;
-  restrinja-os antes de usar em uma conta compartilhada ou de produção.
+  cria e anexa uma policy gerenciada. Em execução sem terminal interativo,
+  informe o usuário como argumento. A policy permite criar e excluir recursos
+  em vários serviços dessa região (não apenas recursos do projeto); conceda-a
+  temporariamente e remova-a ao terminar. O CloudShell precisa estar aberto
+  com uma identidade autorizada a criar policies IAM e anexá-las ao usuário.
+  Se a policy já existir, o script não a atualiza: um administrador IAM deve
+  inspecioná-la e publicar uma nova versão. As permissões de IAM roles,
+  policies, segredos e KMS incluem recursos `*`; use somente em laboratório
+  ou restrinja-as antes de uso compartilhado/produção.
 - A versão PostgreSQL definida por padrão no módulo RDS é `16.15`; confirme a
   disponibilidade na região escolhida antes de provisionar.
 
@@ -66,9 +79,14 @@ antes do `terraform init` do projeto principal, criamos o bucket em um projeto
 separado, com state local:
 
 ```bash
+AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+AWS_REGION="$(aws configure get region)"
+TF_STATE_BUCKET="togglemaster-tfstate-${AWS_ACCOUNT_ID}"
 cd terraform/bootstrap
 terraform init
-terraform apply -var="bucket_name=togglemaster-tfstate-052005814846"
+terraform apply \
+  -var="bucket_name=${TF_STATE_BUCKET}" \
+  -var="region=${AWS_REGION}"
 ```
 
 Isso cria o bucket com versionamento, criptografia (SSE-S3) e bloqueio de
@@ -79,16 +97,21 @@ permanentemente o state remoto armazenado nele.
 
 ## Passo 2 — Projeto principal
 
-O `backend.tf` já referencia o bucket criado no passo anterior e usa
-`use_lockfile = true` (locking nativo do S3, sem precisar de tabela DynamoDB
-para lock, conforme a Aula 2 de IaC).
+O backend usa `use_lockfile = true` (locking nativo do S3, sem precisar de
+tabela DynamoDB para lock, conforme a Aula 2 de IaC). Passe o bucket e a região
+do profile no `terraform init`:
 
 ```bash
 cd terraform
 cp terraform.tfvars.example terraform.tfvars
 # ajuste os valores se necessário (região, tamanhos, nomes, etc.)
 
-terraform init
+terraform init \
+  -backend-config="bucket=${TF_STATE_BUCKET}" \
+  -backend-config="key=togglemaster/terraform.tfstate" \
+  -backend-config="region=${AWS_REGION}" \
+  -backend-config="encrypt=true" \
+  -backend-config="use_lockfile=true"
 terraform plan
 terraform apply
 ```
@@ -118,13 +141,20 @@ O projeto principal e o bootstrap têm states separados. Destrua primeiro os
 recursos principais e só depois o bucket que armazena o state remoto:
 
 ```bash
+AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+AWS_REGION="$(aws configure get region)"
+TF_STATE_BUCKET="togglemaster-tfstate-${AWS_ACCOUNT_ID}"
 cd terraform
 terraform plan -destroy
 terraform destroy
 
 cd bootstrap
-terraform plan -destroy -var="bucket_name=togglemaster-tfstate-052005814846"
-terraform destroy -var="bucket_name=togglemaster-tfstate-052005814846"
+terraform plan -destroy \
+  -var="bucket_name=${TF_STATE_BUCKET}" \
+  -var="region=${AWS_REGION}"
+terraform destroy \
+  -var="bucket_name=${TF_STATE_BUCKET}" \
+  -var="region=${AWS_REGION}"
 ```
 
 O ECR está configurado para apagar os repositórios mesmo quando ainda contêm

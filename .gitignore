@@ -7,7 +7,6 @@ terraform.tfstate
 
 # Local application state
 /.openpost/
-/services/docker-compose.yml
 
 # Kubernetes Secrets contain credentials, even when values are base64-encoded
 /k8s/secrets/
@@ -17,6 +16,7 @@ terraform.tfstate
 *.tfstate
 *.tfstate.*
 *.tfplan
+*tfplan
 /terraform/terraform.tfvars
 
 # Private keys and local credential files
