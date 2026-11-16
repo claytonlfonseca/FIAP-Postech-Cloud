@@ -1,11 +1,14 @@
 # Monitoramento Opensource - ToggleMaster Phase 4
 
-> **Comece pelo [guia central Ubuntu/WSL](../../../README.md)** para instalar
+> **Última atualização:** 15/11/2026
+
+> **Comece pelo [README central](../../README.md)** para preparar
 > ferramentas, configurar o acesso ao EKS e seguir a ordem correta.
 > Esta referência descreve a arquitetura pretendida, não comprova que ela já
 > esteja implantada. Os ServiceMonitors atuais usam pressupostos de Spring Boot
 > que precisam ser adaptados aos serviços Go/Flask; charts, fontes Git,
-> armazenamento e regras também exigem revisão. Veja a seção 8 do guia central.
+> armazenamento e regras também exigem revisão. Veja a seção de observabilidade
+> do README central.
 >
 > O script pode ser executado no WSL, apontando para EKS. Ele exige kubectl,
 > jq e ArgoCD disponíveis. Helm não é necessário localmente: o ArgoCD obtém os

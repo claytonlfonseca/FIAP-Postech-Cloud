@@ -1,5 +1,7 @@
 # Fase 4 — Guia de Execução do ToggleMaster
 
+> **Última atualização:** 15/11/2026
+
 Guia sequencial para preparar o ambiente, autenticar na AWS, provisionar a
 infraestrutura, implantar e validar o ToggleMaster no EKS, habilitar
 GitOps/monitoramento quando desejado e remover os recursos ao final.
@@ -164,8 +166,8 @@ Exemplo de clone do repositório de entrega:
 ```bash
 mkdir -p "$HOME/projetos"
 cd "$HOME/projetos"
-git clone https://github.com/claytonlfonseca/FIAP-Postech-Devops.git
-cd FIAP-Postech-Devops/fase4/FIAP-Postech-Cloud
+git clone https://github.com/claytonlfonseca/FIAP-Postech-Cloud.git
+cd FIAP-Postech-Cloud
 export PROJECT_ROOT="$PWD"
 ```
 
@@ -244,25 +246,40 @@ aparecendo:
 bash scripts/grant-togglemaster-iam.sh togglemaster_user
 ```
 
-O script lê a região configurada no profile selecionado por `AWS_PROFILE` (ou
-no profile `default` se a variável não estiver definida). Configure o profile
-com a mesma região que será usada pelo Terraform. A policy limita as
-permissões S3 ao bucket `togglemaster-tfstate-${AWS_ACCOUNT_ID}`, derivado da
-conta retornada pelo STS. O script também usa esse profile para identificar a
-conta e executar as operações IAM. Em execução sem terminal interativo,
-informe o nome do usuário como argumento.
+Execute o script com uma identidade administrativa autorizada a consultar o
+usuário e a criar e anexar policies IAM. O usuário de destino deve pertencer à
+mesma conta dessa identidade; o script não concede permissões a roles ou
+usuários de outra conta.
 
-Por exemplo, para conferir a região configurada no profile:
+A região vem de `AWS_REGION`, depois de `AWS_DEFAULT_REGION` ou, se ambas
+estiverem vazias, da região configurada no profile selecionado por
+`AWS_PROFILE`/`AWS_DEFAULT_PROFILE` (ou no profile padrão). Confirme que ela é
+a mesma de `terraform/terraform.tfvars` e do backend. Por exemplo:
 
 ```bash
+printf 'Região da sessão: %s\n' "$AWS_REGION"
 aws configure get region
 ```
 
-O script cria e anexa uma policy gerenciada com as permissões de
-provisionamento do projeto. Ele não atualiza uma policy existente; se a policy
-já estiver criada, peça a um administrador IAM para publicar uma nova versão
-com as permissões atualizadas. A política tem acesso elevado por design e deve
-ser removida quando o laboratório terminar.
+O script preenche a conta e a região no modelo
+`scripts/ToggleMasterProjectProvisioner.json` e cria uma única policy
+gerenciada, incluindo login e push no ECR. Esses acessos ECR são permitidos em
+qualquer região e repositório, como na antiga policy `ecr.json`; as demais
+operações ECR de provisionamento são restritas à região escolhida. O S3 fica
+limitado ao bucket `togglemaster-tfstate-${AWS_ACCOUNT_ID}` da conta retornada
+pelo STS. A policy concede permissões elevadas inclusive em IAM e segredos:
+use-a somente em laboratório e remova o acesso ao terminar.
+
+O modelo pressupõe `project_name = "togglemaster"`: `iam:PassRole` e os
+ARNs de policies anexáveis usam o prefixo `togglemaster-`. Se alterar esse
+nome, um administrador deverá revisar e ajustar a policy antes de usá-la.
+
+Em execução sem terminal, informe o usuário como argumento e forneça `APPLY`
+na entrada padrão para confirmar. Se a policy já existir, o script para sem
+atualizá-la ou anexá-la, mesmo que já esteja associada ao usuário. Peça a um
+administrador IAM para inspecionar a versão atual e publicar a nova versão
+antes de anexá-la. Se a criação funcionar mas a associação falhar, a policy
+permanecerá na conta e também deverá ser inspecionada antes de uma nova tentativa.
 
 Defina as variáveis da sessão:
 

@@ -1,5 +1,7 @@
 # 📊 Índice - Monitoramento Opensource ToggleMaster Phase 4
 
+> **Última atualização:** 15/11/2026
+
 ## 📌 Começar Aqui
 
 1. **[SUMMARY.md](SUMMARY.md)** - Resumo executivo (5 min)

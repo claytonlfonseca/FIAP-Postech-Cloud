@@ -1,5 +1,7 @@
 # auth-service (Go)
 
+> **Última atualização:** 15/11/2026
+
 Este é o serviço de autenticação do projeto ToggleMaster. Ele é responsável por criar e validar chaves de API.
 
 ## 📦 Pré-requisitos (Local)

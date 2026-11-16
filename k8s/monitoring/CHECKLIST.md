@@ -1,10 +1,12 @@
 # Checklist de Implementação - Monitoramento Opensource
 
+> **Última atualização:** 15/11/2026
+
 Use este checklist para garantir que todo o stack de monitoramento foi implementado corretamente.
 
 ## ✅ Pré-requisitos
 
-Sequência e instruções de instalação: [guia central Ubuntu/WSL](../../../README.md).
+Sequência e instruções de instalação: [README central](../../README.md).
 
 - [ ] Cluster Kubernetes rodando (EKS, GKE, AKS ou local)
 - [ ] kubectl instalado no Ubuntu/WSL, no PATH e compatível com a versão do cluster

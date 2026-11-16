@@ -1,4 +1,7 @@
 # Monitoramento Opensource - Fase 4 ToggleMaster
+
+> **Última atualização:** 15/11/2026
+
 ## Sumário Executivo
 
 ### 📋 O que foi implementado?

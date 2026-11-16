@@ -1,5 +1,7 @@
 # 🎯 Implementação do Monitoramento Opensource - Tech Challenge Fase 4
 
+> **Última atualização:** 15/11/2026
+
 ## ✅ Status: COMPLETO
 
 Data de Conclusão: **Novembro 3, 2024**

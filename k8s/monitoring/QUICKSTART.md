@@ -1,7 +1,9 @@
 # Início rápido - monitoramento no Ubuntu/WSL
 
-O procedimento completo está no [guia central](../../../README.md),
-especialmente nas seções 3 (ferramentas), 5 (EKS) e 8 (monitoramento).
+> **Última atualização:** 15/11/2026
+
+O procedimento completo está no [guia de execução](../../docs/Fase4_Guia_de_Execucao.md),
+especialmente nas seções de ferramentas, EKS e monitoramento.
 Execute os comandos abaixo na raiz `FIAP-Postech-Cloud`, que contém `k8s`.
 
 ## 1. Preparar o terminal e o cluster
@@ -43,7 +45,7 @@ O script atualizado registra os charts antes dos monitores e aguarda a CRD.
 Com ArgoCD operacional, armazenamento preparado e Applications revisadas, você
 pode usá-lo diretamente. Para instalar manualmente, siga esta ordem:
 
-1. Siga a seção 8.2 do [guia central](../../../README.md).
+1. Siga a [seção de monitoramento do guia](../../docs/Fase4_Guia_de_Execucao.md#16-instalar-monitoramento-opcional).
 2. Revise os repositórios, caminhos Git e versões dos charts nas Applications.
 3. Registre primeiro apenas `prometheus-helm` e `loki-helm`.
 4. Aguarde os charts saudáveis e a CRD:
@@ -95,13 +97,13 @@ kubectl port-forward -n monitoring svc/loki 3100:3100
 
 Confirme os nomes reais dos Services. Valide PVCs `Bound`, targets Prometheus
 e logs recentes no Grafana. Métricas dos microsserviços exigem os ajustes de
-instrumentação/seletores descritos na seção 8.4 do guia central.
+instrumentação/seletores descritos no [README central](../../README.md#observabilidade).
 
 ## Problemas frequentes
 
 | Erro | Ação |
 |---|---|
-| `kubectl: command not found` | Instale kubectl no Ubuntu/WSL e confira `PATH`; seção 3.4 do guia central. |
+| `kubectl: command not found` | Instale kubectl no Ubuntu/WSL e confira `PATH`; consulte os requisitos do guia de execução. |
 | `helm: command not found` | Instale Helm 3 no Ubuntu/WSL. |
 | `current-context is not set` | Configure o acesso ao cluster antes de executar o script. |
 | Caminho `k8s/...` não encontrado | Atualize o script e confira se a cópia contém os manifests indicados pelo erro. |

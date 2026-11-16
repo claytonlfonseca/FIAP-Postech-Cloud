@@ -1,7 +1,9 @@
 # ToggleMaster — Fase 3 (Parte 1: Infraestrutura como Código)
 
+> **Última atualização:** 15/11/2026
+
 > Para a sequência completa de execução, consulte o
-> [guia central Ubuntu/WSL](../../README.md).
+> [README central](../README.md).
 > Os nomes de conta/bucket e a versão EKS abaixo são históricos: ajuste-os
 > ao seu ambiente e ao suporte atual da AWS. Dois nodes `t3.micro` não garantem
 > capacidade para aplicação, ArgoCD e observabilidade.
@@ -54,21 +56,25 @@ bash scripts/grant-togglemaster-iam.sh
 
   O script pergunta no terminal qual usuário IAM receberá a policy; esse
   usuário deve existir na conta. Pode-se passar um nome como argumento para
-  sugeri-lo, mas o script ainda perguntará antes de continuar. Ele lê a região
-  do profile selecionado por `AWS_PROFILE` (ou do profile `default`) e deriva
-  o bucket autorizado como `togglemaster-tfstate-${ACCOUNT_ID}`. Mantenha a
-  região do profile alinhada com a região do Terraform. Para uma conta de
+  sugeri-lo, mas o script ainda perguntará antes de continuar. Ele usa
+  `AWS_REGION`, `AWS_DEFAULT_REGION` ou a região do profile, nessa ordem, e
+  deriva o bucket autorizado como `togglemaster-tfstate-${ACCOUNT_ID}`.
+  Mantenha a região alinhada com a do Terraform. Para uma conta de
   laboratório, o script
   [`scripts/grant-togglemaster-iam.sh`](../scripts/grant-togglemaster-iam.sh)
   cria e anexa uma policy gerenciada. Em execução sem terminal interativo,
-  informe o usuário como argumento. A policy permite criar e excluir recursos
-  em vários serviços dessa região (não apenas recursos do projeto); conceda-a
-  temporariamente e remova-a ao terminar. O CloudShell precisa estar aberto
-  com uma identidade autorizada a criar policies IAM e anexá-las ao usuário.
-  Se a policy já existir, o script não a atualiza: um administrador IAM deve
-  inspecioná-la e publicar uma nova versão. As permissões de IAM roles,
-  policies, segredos e KMS incluem recursos `*`; use somente em laboratório
-  ou restrinja-as antes de uso compartilhado/produção.
+  informe o usuário como argumento e confirme com `APPLY` na entrada padrão.
+  A policy unificada inclui login e push ECR em qualquer região e repositório.
+  Ela permite criar e excluir recursos em vários serviços dessa região (não
+  apenas recursos do projeto); conceda-a
+  temporariamente e remova-a ao terminar. Execute o script com uma identidade
+  autorizada a consultar o usuário e a criar e anexar policies IAM na mesma
+  conta. Se a policy já existir, o script não a atualiza nem a anexa: um
+  administrador IAM deve inspecioná-la e publicar uma nova versão. A policy
+  pressupõe `project_name = "togglemaster"` nos ARNs de roles e policies;
+  alterá-lo exige revisão das permissões. As permissões de IAM roles, policies,
+  segredos e KMS incluem recursos `*`; use somente em laboratório ou
+  restrinja-as antes de uso compartilhado/produção.
 - A versão PostgreSQL definida por padrão no módulo RDS é `16.15`; confirme a
   disponibilidade na região escolhida antes de provisionar.
 

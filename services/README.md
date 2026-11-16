@@ -1,6 +1,8 @@
 # ToggleMaster Local Stack - Conteinerizacao e Validacao
 
-> Comece pelo [guia central Ubuntu/WSL](../../README.md), com instalação do
+> **Última atualização:** 15/11/2026
+
+> Comece pelo [README central](../README.md), com preparação do
 > Docker, diretório correto, teste funcional e limitações atuais.
 > Este documento também registra execuções anteriores; esses resultados não
 > substituem a validação na sua máquina.
@@ -9,6 +11,10 @@
 > Execute os comandos Docker aqui. No modo local, SQS está desabilitado e o
 > OpenTelemetry Collector usa exporter `debug`; o Compose não inclui o stack
 > Kubernetes de monitoramento.
+>
+> Algumas seções abaixo registram testes antigos e seus exemplos de payload
+> podem não corresponder à API atual. Para testar as APIs, use os READMEs
+> individuais de cada serviço e confira o código atual.
 
 Este documento descreve, de ponta a ponta, tudo o que foi realizado no projeto ao final existe um tutorial de testes e validações:
 

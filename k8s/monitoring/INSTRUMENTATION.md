@@ -1,9 +1,11 @@
 # Instrumentação de Microsserviços com Prometheus
 
+> **Última atualização:** 15/11/2026
+
 > **Referência histórica de Spring Boot, não aplicável diretamente ao código
 > Go/Flask deste projeto.** Não é necessário instalar Java, Maven ou Gradle
 > para executar o ToggleMaster. Consulte o
-> [guia central, seção 8.4](../../../README.md#84-métricas-da-aplicação-não-estão-prontas-automaticamente)
+> [README central, observabilidade](../../README.md#observabilidade)
 > para os requisitos reais de endpoints, portas e seletores.
 
 Este guia descreve como adicionar suporte a métricas Prometheus nos microsserviços ToggleMaster.
