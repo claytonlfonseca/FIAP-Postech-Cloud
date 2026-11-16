@@ -1,0 +1,44 @@
+name: Self-Healing Auth
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-2
+
+jobs:
+  restart-auth:
+    name: Restart Auth Deployment
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region us-east-2 \
+            --name togglemaster-eks
+
+      - name: Restart Auth Deployment
+        run: |
+          kubectl rollout restart deployment/auth -n auth
+
+      - name: Verify rollout
+        run: |
+          kubectl rollout status deployment/auth -n auth
